@@ -5,7 +5,12 @@
     "version": "1.0.0",
     "scheme": "pillo",
     "platforms": ["ios", "android"],
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon-pillo.png",
+    "splash": {
+      "image": "./assets/splash-icon-pillo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#17104F"
+    },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -15,13 +20,15 @@
     "android": {
       "package": "com.vershkov.pillo",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#17104F",
+        "foregroundImage": "./assets/android-icon-foreground-pillo.png",
+        "monochromeImage": "./assets/android-icon-monochrome-pillo.png"
       },
       "predictiveBackGestureEnabled": true,
       "permissions": ["android.permission.POST_NOTIFICATIONS"]
+    },
+    "web": {
+      "favicon": "./assets/favicon-pillo.png"
     },
     "plugins": [
       "expo-sqlite",

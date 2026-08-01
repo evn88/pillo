@@ -264,13 +264,13 @@ const TodayScreen = ({ isTablet, onOpenMedications, onStatusChange, palette, sna
   const medicationById = new Map(snapshot.medications.map(medication => [medication.id, medication]));
   const todayIntakes = snapshot.intakes
     .filter(intake => intake.localDate === todayKey)
-    .toSorted((a, b) => a.localTime.localeCompare(b.localTime));
+    .sort((a, b) => a.localTime.localeCompare(b.localTime));
   const pendingCount = todayIntakes.filter(intake => intake.status === 'PENDING').length;
   const takenCount = todayIntakes.filter(intake => intake.status === 'TAKEN').length;
   const lowStock = snapshot.medications.filter(medication => medication.stockUnits <= medication.minThresholdUnits);
   const recentHistory = snapshot.intakes
     .filter(intake => intake.status === 'TAKEN' && intake.takenAt)
-    .toSorted((first, second) => (second.takenAt ?? '').localeCompare(first.takenAt ?? ''))
+    .sort((first, second) => (second.takenAt ?? '').localeCompare(first.takenAt ?? ''))
     .slice(0, 20);
 
   return (
@@ -403,7 +403,7 @@ const ScheduleScreen = ({ medications, onAdd, onDelete, onEdit, palette, rules }
     <ScrollView contentContainerStyle={styles.screenContent}>
       <SectionHeading action={<ActionButton disabled={medications.length === 0} label="Добавить" onPress={onAdd} palette={palette} />} description="Pillo планирует локальные уведомления на следующие 30 дней." palette={palette} title="Расписание" />
       {rules.length === 0 ? <Surface palette={palette}><Text style={[styles.emptyTitle, { color: palette.text }]}>Расписание не настроено</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>{medications.length ? 'Добавьте время и дни приёма.' : 'Сначала добавьте хотя бы один препарат.'}</Text></Surface> : (
-        <View style={styles.list}>{rules.toSorted((a, b) => a.time.localeCompare(b.time)).map(rule => (
+        <View style={styles.list}>{[...rules].sort((a, b) => a.time.localeCompare(b.time)).map(rule => (
           <Surface key={rule.id} palette={palette}>
             <View style={styles.scheduleRow}>
               <Text style={[styles.scheduleTime, { color: palette.primary }]}>{rule.time}</Text>

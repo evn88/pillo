@@ -55,7 +55,7 @@ export const rescheduleNotifications = async (
       if (!medication?.isActive) return [];
       return getUpcomingRuleDates(rule, now, 30).map(date => ({ date, medication, rule }));
     })
-    .toSorted((first, second) => first.date.getTime() - second.date.getTime())
+    .sort((first, second) => first.date.getTime() - second.date.getTime())
     .slice(0, 60);
 
   for (const { date, medication, rule } of jobs) {
