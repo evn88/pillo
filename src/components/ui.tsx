@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { radii, spacing } from '@/theme/tokens';
 
@@ -55,7 +55,10 @@ export const ActionButton = ({
 
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      android_ripple={{ color: tone === 'primary' ? palette.primarySoft : palette.border }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -77,7 +80,7 @@ export const Surface = ({
 }: {
   children: ReactNode;
   palette: Palette;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }) => (
   <View style={[styles.surface, { backgroundColor: palette.surface, borderColor: palette.border }, style]}>
     {children}
@@ -99,12 +102,12 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md
   },
-  buttonLabel: { fontSize: 14, fontWeight: '700' },
-  pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+  buttonLabel: { fontSize: 15, fontWeight: Platform.OS === 'ios' ? '600' : '700' },
+  pressed: { opacity: Platform.OS === 'ios' ? 0.68 : 0.82, transform: [{ scale: 0.98 }] },
   disabled: { opacity: 0.45 },
   surface: { borderRadius: radii.lg, borderWidth: 1, padding: spacing.lg }
 });

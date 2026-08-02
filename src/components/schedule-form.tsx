@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Medication, ScheduleRule } from '@/domain/types';
@@ -34,7 +34,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
   const [startDate, setStartDate] = useState(rule?.startDate ?? getLocalDateKey(new Date()));
   const [endDate, setEndDate] = useState(rule?.endDate ?? '');
   const [comment, setComment] = useState(rule?.comment ?? '');
-  const inputStyle = [styles.input, { backgroundColor: palette.surfaceMuted, color: palette.text }];
+  const inputStyle = [styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }];
 
   const toggleDay = (value: number) => {
     setSelectedDays(current => current.includes(value) ? current.filter(day => day !== value) : [...current, value]);
@@ -56,7 +56,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
   };
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet" visible={visible}>
+    <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <ScrollView contentContainerStyle={[styles.content, { backgroundColor: palette.background }]}>
         <View style={styles.heading}>
           <View style={styles.headingCopy}>
@@ -73,6 +73,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
               <Pressable
                 accessibilityRole="radio"
                 accessibilityState={{ checked: medication.id === medicationId }}
+                android_ripple={{ color: palette.primarySoft }}
                 key={medication.id}
                 onPress={() => setMedicationId(medication.id)}
                 style={[
@@ -90,11 +91,11 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Время, ЧЧ:ММ</Text>
-            <TextInput keyboardType="numbers-and-punctuation" onChangeText={setTime} style={inputStyle} value={time} />
+            <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="numbers-and-punctuation" onChangeText={setTime} selectionColor={palette.primary} style={inputStyle} value={time} />
           </View>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Количество</Text>
-            <TextInput keyboardType="decimal-pad" onChangeText={setDoseUnits} style={inputStyle} value={doseUnits} />
+            <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onChangeText={setDoseUnits} selectionColor={palette.primary} style={inputStyle} value={doseUnits} />
           </View>
         </View>
 
@@ -105,6 +106,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: selectedDays.includes(day.value) }}
+                android_ripple={{ color: palette.primarySoft, borderless: true }}
                 key={day.value}
                 onPress={() => toggleDay(day.value)}
                 style={[
@@ -122,17 +124,17 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Начало, ГГГГ-ММ-ДД</Text>
-            <TextInput onChangeText={setStartDate} style={inputStyle} value={startDate} />
+            <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setStartDate} selectionColor={palette.primary} style={inputStyle} value={startDate} />
           </View>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Окончание</Text>
-            <TextInput onChangeText={setEndDate} placeholder="Не ограничено" placeholderTextColor={palette.textMuted} style={inputStyle} value={endDate} />
+            <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setEndDate} placeholder="Не ограничено" placeholderTextColor={palette.textMuted} selectionColor={palette.primary} style={inputStyle} value={endDate} />
           </View>
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { color: palette.text }]}>Комментарий</Text>
-          <TextInput onChangeText={setComment} style={inputStyle} value={comment} />
+          <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setComment} selectionColor={palette.primary} style={inputStyle} value={comment} />
         </View>
 
         <ActionButton
@@ -154,7 +156,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   field: { gap: spacing.sm },
   label: { fontSize: 14, fontWeight: '600' },
-  input: { borderRadius: radii.md, fontSize: 16, minHeight: 48, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  input: { borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, fontSize: 16, minHeight: 50, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   half: { flexBasis: 220, flexGrow: 1 },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

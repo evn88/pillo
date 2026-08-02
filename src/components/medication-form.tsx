@@ -42,7 +42,7 @@ export const MedicationForm = ({
   );
   const [isPending, setIsPending] = useState(false);
 
-  const fieldStyle = [styles.input, { backgroundColor: palette.surfaceMuted, color: palette.text }];
+  const fieldStyle = [styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }];
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -61,7 +61,7 @@ export const MedicationForm = ({
   };
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle="pageSheet" visible={visible}>
+    <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={[styles.modal, { backgroundColor: palette.background }]}
@@ -82,9 +82,13 @@ export const MedicationForm = ({
               <Text style={[styles.label, { color: palette.text }]}>Название</Text>
               <TextInput
                 autoFocus
+                clearButtonMode="while-editing"
+                keyboardAppearance={isDark ? 'dark' : 'light'}
                 onChangeText={setName}
                 placeholder="Например, витамин D"
                 placeholderTextColor={palette.textMuted}
+                returnKeyType="next"
+                selectionColor={palette.primary}
                 style={fieldStyle}
                 value={name}
               />
@@ -93,30 +97,33 @@ export const MedicationForm = ({
               <View style={[styles.field, styles.half]}>
                 <Text style={[styles.label, { color: palette.text }]}>Дозировка</Text>
                 <TextInput
+                  clearButtonMode="while-editing"
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
                   onChangeText={setDosage}
                   placeholder="10 мг"
                   placeholderTextColor={palette.textMuted}
+                  selectionColor={palette.primary}
                   style={fieldStyle}
                   value={dosage}
                 />
               </View>
               <View style={[styles.field, styles.half]}>
                 <Text style={[styles.label, { color: palette.text }]}>Форма</Text>
-                <TextInput onChangeText={setForm} style={fieldStyle} value={form} />
+                <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setForm} selectionColor={palette.primary} style={fieldStyle} value={form} />
               </View>
             </View>
             <View style={styles.row}>
               <View style={[styles.field, styles.third]}>
                 <Text style={[styles.label, { color: palette.text }]}>Остаток</Text>
-                <TextInput keyboardType="decimal-pad" onChangeText={setStockUnits} style={fieldStyle} value={stockUnits} />
+                <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onChangeText={setStockUnits} selectionColor={palette.primary} style={fieldStyle} value={stockUnits} />
               </View>
               <View style={[styles.field, styles.third]}>
                 <Text style={[styles.label, { color: palette.text }]}>В упаковке</Text>
-                <TextInput keyboardType="number-pad" onChangeText={setUnitsPerPackage} style={fieldStyle} value={unitsPerPackage} />
+                <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="number-pad" onChangeText={setUnitsPerPackage} selectionColor={palette.primary} style={fieldStyle} value={unitsPerPackage} />
               </View>
               <View style={[styles.field, styles.third]}>
                 <Text style={[styles.label, { color: palette.text }]}>Низкий запас</Text>
-                <TextInput keyboardType="decimal-pad" onChangeText={setMinThresholdUnits} style={fieldStyle} value={minThresholdUnits} />
+                <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onChangeText={setMinThresholdUnits} selectionColor={palette.primary} style={fieldStyle} value={minThresholdUnits} />
               </View>
             </View>
           </View>
@@ -143,7 +150,7 @@ const styles = StyleSheet.create({
   fields: { gap: spacing.lg },
   field: { gap: spacing.sm },
   label: { fontSize: 14, fontWeight: '600' },
-  input: { borderRadius: radii.md, fontSize: 16, minHeight: 48, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  input: { borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, fontSize: 16, minHeight: 50, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   half: { flexBasis: 220, flexGrow: 1 },
   third: { flexBasis: 130, flexGrow: 1 }

@@ -1,33 +1,39 @@
+import { Platform } from 'react-native';
+
+const isIOS = Platform.OS === 'ios';
+
 export const colors = {
   light: {
-    background: '#F5F3F8',
+    background: isIOS ? '#F2F2F7' : '#F7F2FA',
     surface: '#FFFFFF',
-    surfaceMuted: '#ECE9F2',
-    text: '#26242A',
-    textMuted: '#69646F',
-    border: '#DED9E5',
-    primary: '#7C5CB8',
-    primarySoft: '#E9DFF7',
-    success: '#3D775D',
-    successSoft: '#DEEEE6',
-    warning: '#986A27',
-    warningSoft: '#F5E8CE',
-    danger: '#A14850'
+    surfaceMuted: isIOS ? '#E9E9EF' : '#E8DEF8',
+    text: isIOS ? '#1C1C1E' : '#1D1B20',
+    textMuted: isIOS ? '#636366' : '#49454F',
+    border: isIOS ? '#D1D1D6' : '#CAC4D0',
+    primary: '#6557C8',
+    primarySoft: isIOS ? '#E5E1FA' : '#E8DEF8',
+    success: '#34785B',
+    successSoft: '#DDF3E7',
+    warning: '#8A5A13',
+    warningSoft: '#FCECCB',
+    danger: isIOS ? '#D70015' : '#BA1A1A',
+    dangerSoft: '#FBE4E7'
   },
   dark: {
-    background: '#17151B',
-    surface: '#232027',
-    surfaceMuted: '#302B34',
-    text: '#F3EFF7',
-    textMuted: '#B8B0BF',
-    border: '#403946',
-    primary: '#C0A3ED',
-    primarySoft: '#392D4D',
+    background: isIOS ? '#000000' : '#141218',
+    surface: isIOS ? '#1C1C1E' : '#211F26',
+    surfaceMuted: isIOS ? '#2C2C2E' : '#36303D',
+    text: isIOS ? '#FFFFFF' : '#E6E0E9',
+    textMuted: isIOS ? '#AEAEB2' : '#CAC4D0',
+    border: isIOS ? '#38383A' : '#49454F',
+    primary: '#C8BFFF',
+    primarySoft: '#3E3763',
     success: '#8BC9AA',
     successSoft: '#253D33',
     warning: '#E3BC79',
     warningSoft: '#443720',
-    danger: '#E99AA0'
+    danger: isIOS ? '#FF6961' : '#FFB4AB',
+    dangerSoft: '#4B2329'
   }
 } as const;
 
@@ -42,7 +48,7 @@ export const spacing = {
 
 export const radii = {
   sm: 8,
-  md: 12,
-  lg: 16,
+  md: isIOS ? 12 : 16,
+  lg: isIOS ? 18 : 24,
   pill: 999
 } as const;

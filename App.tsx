@@ -2,6 +2,8 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar as NativeStatusBar,
@@ -13,34 +15,32 @@ import {
   View
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MedicationForm } from '@/components/medication-form';
+import { HistorySheet } from '@/components/history-sheet';
+import { ManualIntakeSheet } from '@/components/manual-intake-sheet';
 import { ScheduleForm } from '@/components/schedule-form';
-import { ActionButton, SectionHeading, Surface } from '@/components/ui';
+import { NativeHistoryButton, NativePrimaryButton } from '@/components/native-action-button';
+import { SwipeableCard } from '@/components/swipeable-card';
+import { ActionButton, Surface } from '@/components/ui';
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Medication, PilloSettings, ScheduleRule } from '@/domain/types';
-import { usePillo } from '@/hooks/use-pillo';
+import { usePilloContext } from '@/providers/pillo-provider';
 import { colors, radii, spacing } from '@/theme/tokens';
 
-type Tab = 'today' | 'medications' | 'schedule' | 'settings';
+export type PilloTab = 'today' | 'medications' | 'schedule' | 'settings';
 
-const tabs: Array<{ id: Tab; icon: string; label: string }> = [
-  { id: 'today', icon: '⌂', label: 'Сегодня' },
-  { id: 'medications', icon: '✦', label: 'Препараты' },
-  { id: 'schedule', icon: '◷', label: 'Расписание' },
-  { id: 'settings', icon: '⚙', label: 'Настройки' }
-];
+const appIcon = require('./assets/icon-pillo.png') as number;
 
 const formatDose = (value: number): string => `${value} ед.`;
 
-const PilloApplication = () => {
+export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
   const colorScheme = useColorScheme();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
   const {
-    error,
-    isSaving,
     snapshot,
     status,
     addPackage,
@@ -53,12 +53,13 @@ const PilloApplication = () => {
     setIntakeStatus,
     takeMedicationNow,
     updateSettings
-  } = usePillo();
-  const [activeTab, setActiveTab] = useState<Tab>('today');
+  } = usePilloContext();
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [isMedicationFormOpen, setMedicationFormOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<ScheduleRule | null>(null);
   const [isScheduleFormOpen, setScheduleFormOpen] = useState(false);
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
+  const [isManualIntakeOpen, setManualIntakeOpen] = useState(false);
 
   const theme = snapshot.settings.theme;
   const isDark = theme === 'DARK' || (theme === 'SYSTEM' && colorScheme === 'dark');
@@ -96,47 +97,33 @@ const PilloApplication = () => {
   return (
     <SafeAreaView
       edges={['top', 'left', 'right']}
-      style={[styles.safeArea, { backgroundColor: palette.background }]}
+      style={[styles.safeArea, { backgroundColor: palette.surface }]}
     >
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <View style={styles.shell}>
-        {isTablet ? (
-          <View style={[styles.sidebar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <View style={styles.brand}>
-              <View style={[styles.brandIcon, { backgroundColor: palette.primary }]}>
-                <Text style={[styles.brandIconText, { color: palette.surface }]}>P</Text>
-              </View>
-              <View>
-                <Text style={[styles.brandName, { color: palette.text }]}>Pillo</Text>
-                <Text style={[styles.brandCaption, { color: palette.textMuted }]}>Личный помощник</Text>
-              </View>
-            </View>
-            <Navigation activeTab={activeTab} onChange={setActiveTab} palette={palette} vertical />
-            <View style={styles.sidebarFooter}>
-              <Text style={[styles.localOnly, { color: palette.textMuted }]}>Только на этом устройстве</Text>
-            </View>
-          </View>
-        ) : null}
-
         <View style={styles.workspace}>
-          <View style={[styles.topBar, { borderColor: palette.border }]}>
-            <View>
+          <View style={[styles.topBar, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <View style={styles.mobileBrandRow}>
+              {!isTablet ? <Image accessibilityIgnoresInvertColors source={appIcon} style={styles.mobileBrandIcon} /> : null}
               <Text style={[styles.mobileBrand, { color: palette.text }]}>Pillo</Text>
-              <Text style={[styles.topBarCaption, { color: palette.textMuted }]}>Сегодня всё под контролем</Text>
             </View>
-            <View style={styles.saveState}>
-              <View style={[styles.saveDot, { backgroundColor: error ? palette.danger : palette.success }]} />
-              <Text style={[styles.saveText, { color: error ? palette.danger : palette.textMuted }]}>
-                {error ? 'Не сохранено' : isSaving ? 'Сохраняем' : 'Сохранено'}
-              </Text>
+            <View style={styles.topBarActions}>
+              <View style={[styles.pendingPill, { backgroundColor: palette.primarySoft, borderColor: palette.primary }]}>
+                <Text style={[styles.pendingPillText, { color: palette.primary }]}>
+                  {snapshot.intakes.filter(intake => intake.localDate === getLocalDateKey(new Date()) && intake.status === 'PENDING').length} ждёт
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={styles.contentFrame}>
+          <View style={[styles.contentFrame, { backgroundColor: palette.background }]}>
             {activeTab === 'today' ? (
               <TodayScreen
+                isDark={isDark}
                 isTablet={isTablet}
-                onOpenMedications={() => setActiveTab('medications')}
+                onOpenHistory={() => setHistoryOpen(true)}
+                onOpenMedications={() => router.navigate('/medications')}
+                onOpenManualIntake={() => setManualIntakeOpen(true)}
                 palette={palette}
                 snapshot={snapshot}
                 onStatusChange={setIntakeStatus}
@@ -144,6 +131,7 @@ const PilloApplication = () => {
             ) : null}
             {activeTab === 'medications' ? (
               <MedicationsScreen
+                isDark={isDark}
                 medications={snapshot.medications}
                 onAdd={openNewMedication}
                 onAddPackage={addPackage}
@@ -163,6 +151,7 @@ const PilloApplication = () => {
             ) : null}
             {activeTab === 'schedule' ? (
               <ScheduleScreen
+                isDark={isDark}
                 medications={snapshot.medications}
                 onAdd={openNewRule}
                 onDelete={rule =>
@@ -199,11 +188,6 @@ const PilloApplication = () => {
             ) : null}
           </View>
 
-          {!isTablet ? (
-            <SafeAreaView edges={['bottom']} style={{ backgroundColor: palette.surface }}>
-              <Navigation activeTab={activeTab} onChange={setActiveTab} palette={palette} />
-            </SafeAreaView>
-          ) : null}
         </View>
       </View>
 
@@ -229,91 +213,96 @@ const PilloApplication = () => {
           visible
         />
       ) : null}
+      <ManualIntakeSheet
+        isDark={isDark}
+        key={isManualIntakeOpen ? 'manual-open' : 'manual-closed'}
+        medications={snapshot.medications}
+        onClose={() => setManualIntakeOpen(false)}
+        onSave={takeMedicationNow}
+        visible={isManualIntakeOpen}
+      />
+      <HistorySheet
+        intakes={snapshot.intakes}
+        isDark={isDark}
+        medications={snapshot.medications}
+        onClose={() => setHistoryOpen(false)}
+        visible={isHistoryOpen}
+      />
     </SafeAreaView>
   );
 };
 
-const Navigation = ({ activeTab, onChange, palette, vertical = false }: { activeTab: Tab; onChange: (tab: Tab) => void; palette: typeof colors.light | typeof colors.dark; vertical?: boolean }) => (
-  <View style={vertical ? styles.verticalNav : [styles.bottomNav, { borderColor: palette.border }]}>
-    {tabs.map(tab => {
-      const isActive = activeTab === tab.id;
-      return (
-        <Pressable
-          accessibilityRole="tab"
-          accessibilityState={{ selected: isActive }}
-          key={tab.id}
-          onPress={() => onChange(tab.id)}
-          style={({ pressed }) => [
-            vertical ? styles.verticalNavItem : styles.bottomNavItem,
-            isActive && { backgroundColor: palette.primarySoft },
-            pressed && styles.pressed
-          ]}
-        >
-          <Text style={[styles.navIcon, { color: isActive ? palette.primary : palette.textMuted }]}>{tab.icon}</Text>
-          <Text style={[styles.navLabel, { color: isActive ? palette.primary : palette.textMuted }]}>{tab.label}</Text>
-        </Pressable>
-      );
-    })}
-  </View>
-);
-
 type Palette = typeof colors.light | typeof colors.dark;
 
-const TodayScreen = ({ isTablet, onOpenMedications, onStatusChange, palette, snapshot }: { isTablet: boolean; onOpenMedications: () => void; onStatusChange: (id: string, status: 'PENDING' | 'TAKEN' | 'SKIPPED') => Promise<void>; palette: Palette; snapshot: ReturnType<typeof usePillo>['snapshot'] }) => {
+const TodayScreen = ({
+  isDark,
+  isTablet,
+  onOpenHistory,
+  onOpenManualIntake,
+  onOpenMedications,
+  onStatusChange,
+  palette,
+  snapshot
+}: {
+  isDark: boolean;
+  isTablet: boolean;
+  onOpenHistory: () => void;
+  onOpenManualIntake: () => void;
+  onOpenMedications: () => void;
+  onStatusChange: (id: string, status: 'PENDING' | 'TAKEN' | 'SKIPPED') => Promise<void>;
+  palette: Palette;
+  snapshot: ReturnType<typeof usePilloContext>['snapshot'];
+}) => {
   const todayKey = getLocalDateKey(new Date());
   const medicationById = new Map(snapshot.medications.map(medication => [medication.id, medication]));
   const todayIntakes = snapshot.intakes
     .filter(intake => intake.localDate === todayKey)
     .sort((a, b) => a.localTime.localeCompare(b.localTime));
-  const pendingCount = todayIntakes.filter(intake => intake.status === 'PENDING').length;
-  const takenCount = todayIntakes.filter(intake => intake.status === 'TAKEN').length;
   const lowStock = snapshot.medications.filter(medication => medication.stockUnits <= medication.minThresholdUnits);
-  const recentHistory = snapshot.intakes
-    .filter(intake => intake.status === 'TAKEN' && intake.takenAt)
-    .sort((first, second) => (second.takenAt ?? '').localeCompare(first.takenAt ?? ''))
-    .slice(0, 20);
 
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <SectionHeading description="Спокойный обзор ближайших приёмов без лишних данных." palette={palette} title="Сегодня" />
-      <View style={isTablet ? styles.tabletColumns : styles.singleColumn}>
+    <View style={styles.screenRoot}>
+      <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]}>
+        <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ВСЕ ПРИЁМЫ НА СЕГОДНЯ</Text>
+        <View style={isTablet ? styles.tabletColumns : styles.singleColumn}>
         <View style={styles.primaryColumn}>
-          <Surface palette={palette} style={styles.summarySurface}>
-            <View>
-              <Text style={[styles.summaryNumber, { color: palette.text }]}>{pendingCount}</Text>
-              <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>осталось принять</Text>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: palette.border }]} />
-            <View>
-              <Text style={[styles.summaryNumber, { color: palette.success }]}>{takenCount}</Text>
-              <Text style={[styles.summaryLabel, { color: palette.textMuted }]}>уже принято</Text>
-            </View>
-          </Surface>
-
           {todayIntakes.length === 0 ? (
-            <Surface palette={palette}>
+            <Surface palette={palette} style={styles.emptySurface}>
+              <Text style={styles.emptyIcon}>✓</Text>
               <Text style={[styles.emptyTitle, { color: palette.text }]}>На сегодня приёмов нет</Text>
-              <Text style={[styles.emptyText, { color: palette.textMuted }]}>Добавьте препарат и настройте удобное расписание.</Text>
+              <Text style={[styles.emptyText, { color: palette.textMuted }]}>Можно отдохнуть или отметить внеплановый приём вручную.</Text>
               <View style={styles.inlineAction}><ActionButton label="Добавить препарат" onPress={onOpenMedications} palette={palette} /></View>
             </Surface>
           ) : (
             <View style={styles.list}>
               {todayIntakes.map(intake => {
                 const medication = medicationById.get(intake.medicationId);
+                const isLowStock = medication ? medication.stockUnits <= medication.minThresholdUnits : false;
                 return (
-                  <Surface key={intake.id} palette={palette}>
-                    <View style={styles.intakeTopline}>
-                      <Text style={[styles.intakeTime, { color: palette.primary }]}>{intake.localTime}</Text>
-                      <Text style={[styles.statusText, { color: intake.status === 'TAKEN' ? palette.success : palette.textMuted }]}>
-                        {intake.status === 'TAKEN' ? 'Принято' : intake.status === 'SKIPPED' ? 'Пропущено' : 'Ожидает'}
-                      </Text>
+                  <Surface key={intake.id} palette={palette} style={isLowStock ? { borderColor: palette.warning } : undefined}>
+                    <View style={styles.cardHeader}>
+                      <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}>
+                        <Text style={[styles.medicationGlyphText, { color: palette.primary }]}>✦</Text>
+                      </View>
+                      <View style={styles.cardHeaderCopy}>
+                        <Text style={[styles.cardTitle, { color: palette.text }]}>{medication?.name ?? 'Удалённый препарат'}</Text>
+                        <Text style={[styles.cardMeta, { color: palette.textMuted }]}>{intake.localTime} · {formatDose(intake.doseUnits)}{medication?.dosage ? ` · ${medication.dosage}` : ''}</Text>
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: intake.status === 'TAKEN' ? palette.successSoft : intake.status === 'SKIPPED' ? palette.dangerSoft : palette.primarySoft }]}>
+                        <Text style={[styles.statusText, { color: intake.status === 'TAKEN' ? palette.success : intake.status === 'SKIPPED' ? palette.danger : palette.primary }]}>
+                          {intake.status === 'TAKEN' ? 'ПРИНЯТО' : intake.status === 'SKIPPED' ? 'ПРОПУЩЕНО' : 'ОЖИДАЕТ'}
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={[styles.cardTitle, { color: palette.text }]}>{medication?.name ?? 'Удалённый препарат'}</Text>
-                    <Text style={[styles.cardMeta, { color: palette.textMuted }]}>{formatDose(intake.doseUnits)}{medication?.dosage ? ` · ${medication.dosage}` : ''}</Text>
+                    {isLowStock ? (
+                      <View style={[styles.stockWarning, { backgroundColor: palette.warningSoft }]}>
+                        <Text style={[styles.stockWarningText, { color: palette.warning }]}>Запас подходит к концу · осталось {medication?.stockUnits ?? 0} ед.</Text>
+                      </View>
+                    ) : null}
                     <View style={styles.cardActions}>
                       {intake.status === 'PENDING' ? (
                         <>
-                          <ActionButton label="Принято" onPress={() => void onStatusChange(intake.id, 'TAKEN')} palette={palette} />
+                          <ActionButton label="✓  Принял" onPress={() => void onStatusChange(intake.id, 'TAKEN')} palette={palette} />
                           <ActionButton label="Пропустить" onPress={() => void onStatusChange(intake.id, 'SKIPPED')} palette={palette} tone="secondary" />
                         </>
                       ) : (
@@ -325,32 +314,6 @@ const TodayScreen = ({ isTablet, onOpenMedications, onStatusChange, palette, sna
               })}
             </View>
           )}
-          {recentHistory.length ? (
-            <View style={styles.historySection}>
-              <Text style={[styles.columnTitle, { color: palette.text }]}>Недавняя история</Text>
-              <Surface palette={palette}>
-                {recentHistory.map((intake, index) => (
-                  <View
-                    key={intake.id}
-                    style={[
-                      styles.historyRow,
-                      index > 0 && { borderColor: palette.border, borderTopWidth: StyleSheet.hairlineWidth }
-                    ]}
-                  >
-                    <View style={styles.historyCopy}>
-                      <Text style={[styles.historyTitle, { color: palette.text }]}>
-                        {medicationById.get(intake.medicationId)?.name ?? 'Удалённый препарат'}
-                      </Text>
-                      <Text style={[styles.cardMeta, { color: palette.textMuted }]}>
-                        {intake.localDate} · {intake.localTime} · {formatDose(intake.doseUnits)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.statusText, { color: palette.success }]}>Принято</Text>
-                  </View>
-                ))}
-              </Surface>
-            </View>
-          ) : null}
         </View>
 
         {isTablet ? (
@@ -364,82 +327,127 @@ const TodayScreen = ({ isTablet, onOpenMedications, onStatusChange, palette, sna
             ))}
           </View>
         ) : null}
+        </View>
+      </ScrollView>
+      <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}>
+        <View style={styles.floatingActions}>
+        <View style={styles.floatingPrimary}>
+          <ActionButton disabled={snapshot.medications.length === 0} label="✓  Отметить вручную" onPress={onOpenManualIntake} palette={palette} />
+        </View>
+        <NativeHistoryButton isDark={isDark} onPress={onOpenHistory} tintColor={palette.primary} />
+        </View>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
-const MedicationsScreen = ({ medications, onAdd, onAddPackage, onDelete, onEdit, onTakeNow, palette }: { medications: Medication[]; onAdd: () => void; onAddPackage: (id: string) => Promise<void>; onDelete: (medication: Medication) => void; onEdit: (medication: Medication) => void; onTakeNow: (id: string, dose: number) => Promise<void>; palette: Palette }) => (
-  <ScrollView contentContainerStyle={styles.screenContent}>
-    <SectionHeading action={<ActionButton label="Добавить" onPress={onAdd} palette={palette} />} description="Дозировки и остатки хранятся только на устройстве." palette={palette} title="Препараты" />
+const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete, onEdit, onTakeNow, palette }: { isDark: boolean; medications: Medication[]; onAdd: () => void; onAddPackage: (id: string) => Promise<void>; onDelete: (medication: Medication) => void; onEdit: (medication: Medication) => void; onTakeNow: (id: string, dose: number) => Promise<void>; palette: Palette }) => (
+  <View style={styles.screenRoot}>
+    <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]}>
+      <Text style={[styles.eyebrow, { color: palette.textMuted }]}>МОИ ПРЕПАРАТЫ</Text>
     {medications.length === 0 ? (
-      <Surface palette={palette}><Text style={[styles.emptyTitle, { color: palette.text }]}>Список пока пуст</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>Добавьте первый препарат, затем настройте расписание.</Text></Surface>
+      <Surface palette={palette} style={styles.emptySurface}><Text style={styles.emptyIcon}>＋</Text><Text style={[styles.emptyTitle, { color: palette.text }]}>Список пока пуст</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>Добавьте первый препарат, затем настройте расписание.</Text></Surface>
     ) : (
       <View style={styles.cardGrid}>
-        {medications.map(medication => (
-          <Surface key={medication.id} palette={palette} style={styles.gridCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || medication.form}</Text></View>
-              <View style={[styles.stockBadge, { backgroundColor: medication.stockUnits <= medication.minThresholdUnits ? palette.warningSoft : palette.successSoft }]}><Text style={{ color: medication.stockUnits <= medication.minThresholdUnits ? palette.warning : palette.success, fontWeight: '700' }}>{medication.stockUnits} шт.</Text></View>
-            </View>
-            <View style={styles.cardActions}>
-              <ActionButton label="Принять сейчас" onPress={() => void onTakeNow(medication.id, 1)} palette={palette} />
-              <ActionButton label="+ упаковка" onPress={() => void onAddPackage(medication.id)} palette={palette} tone="secondary" />
-            </View>
-            <View style={styles.textActions}>
-              <Pressable onPress={() => onEdit(medication)}><Text style={[styles.textAction, { color: palette.primary }]}>Изменить</Text></Pressable>
-              <Pressable onPress={() => onDelete(medication)}><Text style={[styles.textAction, { color: palette.danger }]}>Удалить</Text></Pressable>
-            </View>
-          </Surface>
-        ))}
+        {medications.map(medication => {
+          const isLowStock = medication.stockUnits <= medication.minThresholdUnits;
+          const packageSize = Math.max(1, medication.unitsPerPackage);
+          const progress = Math.min(100, Math.round((medication.stockUnits / packageSize) * 100));
+
+          return (
+            <SwipeableCard deleteColor={palette.danger} key={medication.id} onDelete={() => onDelete(medication)} onPress={() => onEdit(medication)}>
+            <Surface palette={palette} style={[styles.gridCard, isLowStock ? { borderColor: palette.warning } : undefined]}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}>
+                  <Text style={[styles.medicationGlyphText, { color: palette.primary }]}>✦</Text>
+                </View>
+                <View style={styles.cardHeaderCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || 'Без дозировки'} · {medication.form}</Text></View>
+              </View>
+              <View style={styles.stockRow}>
+                <Text style={[styles.stockNumber, { color: palette.text }]}>{medication.stockUnits}</Text>
+                <Text style={[styles.stockUnit, { color: palette.textMuted }]}>ед. в наличии</Text>
+                <View style={[styles.stockBadge, { backgroundColor: isLowStock ? palette.warningSoft : palette.successSoft }]}><Text style={{ color: isLowStock ? palette.warning : palette.success, fontWeight: '800' }}>{isLowStock ? 'СКОРО ЗАКОНЧИТСЯ' : 'ЗАПАС ЕСТЬ'}</Text></View>
+              </View>
+              <View style={[styles.progressTrack, { backgroundColor: palette.surfaceMuted }]}>
+                <View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} />
+              </View>
+              <View style={styles.cardActions}>
+                <ActionButton label="Принять сейчас" onPress={() => void onTakeNow(medication.id, 1)} palette={palette} tone="secondary" />
+                <ActionButton label="＋ Упаковка" onPress={() => void onAddPackage(medication.id)} palette={palette} />
+              </View>
+            </Surface>
+            </SwipeableCard>
+          );
+        })}
       </View>
     )}
-  </ScrollView>
+    </ScrollView>
+    <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}>
+      <NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={onAdd} tintColor={palette.primary} />
+    </View>
+  </View>
 );
 
-const ScheduleScreen = ({ medications, onAdd, onDelete, onEdit, palette, rules }: { medications: Medication[]; onAdd: () => void; onDelete: (rule: ScheduleRule) => void; onEdit: (rule: ScheduleRule) => void; palette: Palette; rules: ScheduleRule[] }) => {
+const ScheduleScreen = ({ isDark, medications, onAdd, onDelete, onEdit, palette, rules }: { isDark: boolean; medications: Medication[]; onAdd: () => void; onDelete: (rule: ScheduleRule) => void; onEdit: (rule: ScheduleRule) => void; palette: Palette; rules: ScheduleRule[] }) => {
   const medicationById = new Map(medications.map(medication => [medication.id, medication]));
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
-      <SectionHeading action={<ActionButton disabled={medications.length === 0} label="Добавить" onPress={onAdd} palette={palette} />} description="Pillo планирует локальные уведомления на следующие 30 дней." palette={palette} title="Расписание" />
+    <View style={styles.screenRoot}>
+      <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]}>
+        <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ПРАВИЛА ПРИЁМА</Text>
       {rules.length === 0 ? <Surface palette={palette}><Text style={[styles.emptyTitle, { color: palette.text }]}>Расписание не настроено</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>{medications.length ? 'Добавьте время и дни приёма.' : 'Сначала добавьте хотя бы один препарат.'}</Text></Surface> : (
         <View style={styles.list}>{[...rules].sort((a, b) => a.time.localeCompare(b.time)).map(rule => (
-          <Surface key={rule.id} palette={palette}>
+          <SwipeableCard deleteColor={palette.danger} key={rule.id} onDelete={() => onDelete(rule)} onPress={() => onEdit(rule)}>
+          <Surface palette={palette}>
             <View style={styles.scheduleRow}>
-              <Text style={[styles.scheduleTime, { color: palette.primary }]}>{rule.time}</Text>
-              <View style={styles.scheduleCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>{medicationById.get(rule.medicationId)?.name ?? 'Удалённый препарат'}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{formatDose(rule.doseUnits)} · {rule.daysOfWeek.length === 7 ? 'каждый день' : `${rule.daysOfWeek.length} дн. в неделю`}</Text></View>
+              <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><Text style={[styles.medicationGlyphText, { color: palette.primary }]}>◷</Text></View>
+              <View style={styles.scheduleCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>{medicationById.get(rule.medicationId)?.name ?? 'Удалённый препарат'}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{rule.time} · {formatDose(rule.doseUnits)}</Text></View>
+              <View style={[styles.statusBadge, { backgroundColor: rule.isActive ? palette.successSoft : palette.surfaceMuted }]}><Text style={[styles.statusText, { color: rule.isActive ? palette.success : palette.textMuted }]}>{rule.isActive ? 'АКТИВНО' : 'НЕАКТИВНО'}</Text></View>
             </View>
-            <View style={styles.textActions}><Pressable onPress={() => onEdit(rule)}><Text style={[styles.textAction, { color: palette.primary }]}>Изменить</Text></Pressable><Pressable onPress={() => onDelete(rule)}><Text style={[styles.textAction, { color: palette.danger }]}>Удалить</Text></Pressable></View>
+            <View style={styles.daysRow}>
+              {[1, 2, 3, 4, 5, 6, 0].map((day, index) => {
+                const selected = rule.daysOfWeek.includes(day);
+                return <View key={day} style={[styles.dayBadge, { backgroundColor: selected ? palette.primarySoft : palette.surfaceMuted }]}><Text style={[styles.dayText, { color: selected ? palette.primary : palette.textMuted }]}>{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][index]}</Text></View>;
+              })}
+            </View>
           </Surface>
+          </SwipeableCard>
         ))}</View>
       )}
-    </ScrollView>
+      </ScrollView>
+      <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}>
+        <NativePrimaryButton disabled={medications.length === 0} isDark={isDark} label="Добавить правило" onPress={onAdd} tintColor={palette.primary} />
+      </View>
+    </View>
   );
 };
 
 const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: { isTablet: boolean; onChange: (settings: PilloSettings) => Promise<void>; onClearData: () => void; palette: Palette; settings: PilloSettings }) => (
   <ScrollView contentContainerStyle={styles.screenContent}>
-    <SectionHeading description="Приложение работает без аккаунта и не отправляет данные на сервер." palette={palette} title="Настройки" />
+    <Text style={[styles.eyebrow, { color: palette.textMuted }]}>УВЕДОМЛЕНИЯ</Text>
     <View style={isTablet ? styles.settingsGrid : styles.list}>
       <Surface palette={palette} style={styles.gridCard}>
-        <View style={styles.settingRow}><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Напоминания</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Системные локальные уведомления. На экране блокировки показывается минимум данных.</Text></View><Switch onValueChange={value => void onChange({ ...settings, notificationsEnabled: value })} trackColor={{ false: palette.surfaceMuted, true: palette.primarySoft }} thumbColor={settings.notificationsEnabled ? palette.primary : palette.textMuted} value={settings.notificationsEnabled} /></View>
+        <View style={styles.settingRow}>
+          <View style={[styles.settingIcon, { backgroundColor: palette.success }]}><Text style={styles.settingIconText}>◯</Text></View>
+          <View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Push-уведомления</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Системные локальные напоминания о приёмах.</Text></View>
+          <Switch accessibilityLabel="Push-уведомления" ios_backgroundColor={palette.surfaceMuted} onValueChange={value => void onChange({ ...settings, notificationsEnabled: value })} trackColor={{ false: palette.surfaceMuted, true: Platform.OS === 'ios' ? palette.success : palette.successSoft }} thumbColor={Platform.OS === 'android' ? (settings.notificationsEnabled ? palette.success : palette.textMuted) : undefined} value={settings.notificationsEnabled} />
+        </View>
       </Surface>
+      <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ВНЕШНИЙ ВИД</Text>
       <Surface palette={palette} style={styles.gridCard}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>Оформление</Text>
-        <View style={styles.themeOptions}>{(['SYSTEM', 'LIGHT', 'DARK'] as const).map(theme => <Pressable accessibilityRole="radio" accessibilityState={{ checked: settings.theme === theme }} key={theme} onPress={() => void onChange({ ...settings, theme })} style={[styles.themeOption, { backgroundColor: settings.theme === theme ? palette.primarySoft : palette.surfaceMuted }]}><Text style={{ color: settings.theme === theme ? palette.primary : palette.text, fontWeight: '700' }}>{theme === 'SYSTEM' ? 'Система' : theme === 'LIGHT' ? 'Светлая' : 'Тёмная'}</Text></Pressable>)}</View>
+        <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primary }]}><Text style={styles.settingIconText}>◐</Text></View><Text style={[styles.cardTitle, { color: palette.text }]}>Тема</Text></View>
+        <View accessibilityRole="radiogroup" style={styles.themeOptions}>{(['LIGHT', 'DARK', 'SYSTEM'] as const).map(theme => {
+          const selected = settings.theme === theme;
+          return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} android_ripple={{ color: palette.primarySoft }} key={theme} onPress={() => void onChange({ ...settings, theme })} style={[styles.themeOption, { backgroundColor: selected ? palette.surfaceMuted : palette.background, borderColor: selected ? palette.textMuted : palette.border }]}><Text style={[styles.themeIcon, { color: theme === 'LIGHT' ? palette.warning : theme === 'DARK' ? palette.primary : palette.textMuted }]}>{theme === 'LIGHT' ? '☀' : theme === 'DARK' ? '☾' : '▣'}</Text><Text style={{ color: palette.text, fontWeight: '700' }}>{theme === 'SYSTEM' ? 'Системная' : theme === 'LIGHT' ? 'Светлая' : 'Тёмная'}</Text></Pressable>;
+        })}</View>
       </Surface>
+      <Text style={[styles.eyebrow, { color: palette.textMuted }]}>О ПРИЛОЖЕНИИ</Text>
       <Surface palette={palette} style={styles.gridCard}>
-        <Text style={[styles.cardTitle, { color: palette.text }]}>Приватность</Text>
-        <Text style={[styles.cardMeta, { color: palette.textMuted }]}>Данные находятся в sandbox приложения и защищаются настройками безопасности устройства. Удаление приложения удалит локальную базу.</Text>
+        <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><Text style={[styles.settingIconText, { color: palette.primary }]}>✓</Text></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Pillo</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Все данные защищены и хранятся локально на устройстве.</Text></View></View>
         <View style={styles.inlineAction}><ActionButton label="Удалить все данные" onPress={onClearData} palette={palette} tone="danger" /></View>
       </Surface>
     </View>
   </ScrollView>
 );
-
-export default function App() {
-  return <SafeAreaProvider><PilloApplication /></SafeAreaProvider>;
-}
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, paddingTop: NativeStatusBar.currentHeight ? 0 : undefined },
@@ -449,21 +457,32 @@ const styles = StyleSheet.create({
   loadingText: { fontSize: 14, textAlign: 'center' },
   sidebar: { borderRightWidth: StyleSheet.hairlineWidth, padding: spacing.lg, width: 244 },
   brand: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xxl, padding: spacing.sm },
-  brandIcon: { alignItems: 'center', borderRadius: radii.md, height: 42, justifyContent: 'center', width: 42 },
-  brandIconText: { fontSize: 20, fontWeight: '800' },
+  brandIcon: { borderRadius: radii.md, height: 44, width: 44 },
   brandName: { fontSize: 20, fontWeight: '800', letterSpacing: -0.4 },
   brandCaption: { fontSize: 12, marginTop: 2 },
   sidebarFooter: { flex: 1, justifyContent: 'flex-end', padding: spacing.md },
   localOnly: { fontSize: 12, lineHeight: 18 },
   workspace: { flex: 1 },
-  topBar: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 66, paddingHorizontal: spacing.xl },
-  mobileBrand: { fontSize: 19, fontWeight: '800' },
+  topBar: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 76, paddingHorizontal: spacing.lg },
+  mobileBrandRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  mobileBrandIcon: { borderRadius: radii.sm, height: 36, width: 36 },
+  mobileBrand: { fontSize: 24, fontWeight: '800', letterSpacing: -0.7 },
   topBarCaption: { fontSize: 12, marginTop: 2 },
+  topBarActions: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
+  pendingPill: { borderRadius: radii.pill, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  pendingPillText: { fontSize: 13, fontWeight: '700' },
+  localPill: { alignItems: 'center', borderRadius: radii.pill, borderWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: spacing.xs, maxWidth: 132, minHeight: 40, paddingHorizontal: spacing.md },
+  localPillIcon: { fontSize: 18 },
+  localPillText: { flexShrink: 1, fontSize: 12, fontWeight: '600' },
   saveState: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
   saveDot: { borderRadius: radii.pill, height: 7, width: 7 },
   saveText: { fontSize: 12, fontWeight: '600' },
   contentFrame: { flex: 1 },
-  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, width: '100%' },
+  screenRoot: { flex: 1 },
+  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: 48, paddingTop: spacing.xl, width: '100%' },
+  screenWithFloatingActions: { paddingBottom: 176 },
+  floatingFooter: { bottom: 88, left: 0, padding: spacing.lg, position: 'absolute', right: 0 },
+  eyebrow: { fontSize: 14, fontWeight: '800', letterSpacing: 2.6, marginHorizontal: spacing.sm },
   verticalNav: { gap: spacing.sm },
   verticalNavItem: { alignItems: 'center', borderRadius: radii.md, flexDirection: 'row', gap: spacing.md, minHeight: 48, paddingHorizontal: spacing.md },
   bottomNav: { borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', minHeight: 66, paddingHorizontal: spacing.xs, paddingTop: spacing.xs },
@@ -481,6 +500,8 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 12, marginTop: 2 },
   summaryDivider: { height: 44, width: StyleSheet.hairlineWidth },
   list: { gap: spacing.md },
+  emptySurface: { alignItems: 'center', paddingVertical: spacing.xxl },
+  emptyIcon: { fontSize: 28, marginBottom: spacing.md },
   historySection: { gap: spacing.md, marginTop: spacing.sm },
   historyRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between', paddingVertical: spacing.md },
   historyCopy: { flex: 1 },
@@ -498,15 +519,37 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, lineHeight: 20 },
   cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between' },
   cardHeaderCopy: { flex: 1 },
+  cardHeaderActions: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm },
+  medicationGlyph: { alignItems: 'center', borderRadius: radii.md, height: 52, justifyContent: 'center', width: 52 },
+  medicationGlyphText: { fontSize: 22, fontWeight: '700' },
+  statusBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   stockBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  textActions: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.lg },
-  textAction: { fontSize: 14, fontWeight: '700', minHeight: 36, paddingVertical: spacing.sm },
+  stockRow: { alignItems: 'baseline', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
+  stockNumber: { fontSize: 28, fontWeight: '800' },
+  stockUnit: { flex: 1, fontSize: 14, fontWeight: '600' },
+  progressTrack: { borderRadius: radii.pill, height: 8, marginTop: spacing.md, overflow: 'hidden' },
+  progressFill: { borderRadius: radii.pill, height: '100%' },
+  stockWarning: { borderRadius: radii.md, marginTop: spacing.lg, padding: spacing.lg },
+  stockWarningText: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  moreButton: { alignItems: 'center', borderRadius: radii.pill, height: 44, justifyContent: 'center', overflow: 'hidden', width: 44 },
+  moreButtonText: { fontSize: 17, fontWeight: '800', letterSpacing: 1, marginTop: -8 },
   scheduleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
   scheduleTime: { fontSize: 24, fontWeight: '800', width: 68 },
   scheduleCopy: { flex: 1 },
+  daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
+  dayBadge: { alignItems: 'center', borderRadius: radii.pill, height: 38, justifyContent: 'center', width: 38 },
+  dayText: { fontSize: 12, fontWeight: '800' },
+  scheduleMenu: { alignItems: 'center', borderRadius: radii.md, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing.lg, minHeight: 44, paddingTop: spacing.md },
+  scheduleMenuText: { fontSize: 14, fontWeight: '700' },
+  floatingActions: { alignItems: 'stretch', flexDirection: 'row', gap: spacing.md },
+  floatingPrimary: { flex: 1 },
   settingsGrid: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   settingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
+  settingTitleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
+  settingIcon: { alignItems: 'center', borderRadius: radii.md, height: 44, justifyContent: 'center', width: 44 },
+  settingIconText: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
   settingCopy: { flex: 1 },
-  themeOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
-  themeOption: { borderRadius: radii.pill, minHeight: 44, paddingHorizontal: spacing.lg, paddingVertical: spacing.md }
+  themeOptions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  themeOption: { alignItems: 'center', borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, flex: 1, gap: spacing.sm, minHeight: 104, paddingHorizontal: spacing.sm, paddingVertical: spacing.lg },
+  themeIcon: { fontSize: 26 }
 });
