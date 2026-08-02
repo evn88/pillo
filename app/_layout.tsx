@@ -15,16 +15,18 @@ const TabLayout = () => {
 
   return (
     <NativeTabs
-      backgroundColor={palette.surface}
-      blurEffect={isDark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+      backgroundColor={palette.background}
+      blurEffect={isDark ? 'none' : 'systemChromeMaterialLight'}
       disableTransparentOnScrollEdge
+      indicatorColor={palette.primarySoft}
       iconColor={{ default: palette.textMuted, selected: palette.primary }}
       labelStyle={{
         default: { color: palette.textMuted },
         selected: { color: palette.primary, fontWeight: '600' }
       }}
-      shadowColor={palette.border}
+      shadowColor={isDark ? palette.background : palette.border}
       tintColor={palette.primary}
+      unstable_nativeProps={{ colorScheme: isDark ? 'dark' : 'light' }}
     >
       <NativeTabs.Trigger contentStyle={{ backgroundColor: palette.background }} name="index">
         <NativeTabs.Trigger.Label>Сегодня</NativeTabs.Trigger.Label>

@@ -332,7 +332,7 @@ const TodayScreen = ({
       <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}>
         <View style={styles.floatingActions}>
         <View style={styles.floatingPrimary}>
-          <ActionButton disabled={snapshot.medications.length === 0} label="✓  Отметить вручную" onPress={onOpenManualIntake} palette={palette} />
+          <ActionButton disabled={snapshot.medications.length === 0} fill label="✓  Отметить вручную" onPress={onOpenManualIntake} palette={palette} />
         </View>
         <NativeHistoryButton isDark={isDark} onPress={onOpenHistory} tintColor={palette.primary} />
         </View>
@@ -541,8 +541,8 @@ const styles = StyleSheet.create({
   dayText: { fontSize: 12, fontWeight: '800' },
   scheduleMenu: { alignItems: 'center', borderRadius: radii.md, borderTopWidth: StyleSheet.hairlineWidth, marginTop: spacing.lg, minHeight: 44, paddingTop: spacing.md },
   scheduleMenuText: { fontSize: 14, fontWeight: '700' },
-  floatingActions: { alignItems: 'stretch', flexDirection: 'row', gap: spacing.md },
-  floatingPrimary: { flex: 1 },
+  floatingActions: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  floatingPrimary: { flex: 1, height: 60 },
   settingsGrid: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   settingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
   settingTitleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },

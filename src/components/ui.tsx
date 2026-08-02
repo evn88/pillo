@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { NativeActionButton } from '@/components/native-action-button';
+import { colors } from '@/theme/tokens';
 import { radii, spacing } from '@/theme/tokens';
 
 type Palette = {
+  background: string;
   surface: string;
   surfaceMuted: string;
   text: string;
@@ -38,38 +41,29 @@ export const SectionHeading = ({
 
 export const ActionButton = ({
   disabled,
+  fill,
   label,
   onPress,
   palette,
   tone = 'primary'
 }: {
   disabled?: boolean;
+  fill?: boolean;
   label: string;
   onPress: () => void;
   palette: Palette;
   tone?: 'primary' | 'secondary' | 'danger';
 }) => {
-  const backgroundColor =
-    tone === 'primary' ? palette.primary : tone === 'danger' ? 'transparent' : palette.surfaceMuted;
-  const color = tone === 'primary' ? palette.surface : tone === 'danger' ? palette.danger : palette.text;
-
   return (
-    <Pressable
-      accessibilityLabel={label}
-      accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      android_ripple={{ color: tone === 'primary' ? palette.primarySoft : palette.border }}
+    <NativeActionButton
       disabled={disabled}
+      fill={fill}
+      isDark={palette.background === colors.dark.background}
+      label={label}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        { backgroundColor, borderColor: tone === 'danger' ? palette.danger : 'transparent' },
-        pressed && styles.pressed,
-        disabled && styles.disabled
-      ]}
-    >
-      <Text style={[styles.buttonLabel, { color }]}>{label}</Text>
-    </Pressable>
+      tintColor={tone === 'danger' ? palette.danger : palette.primary}
+      tone={tone}
+    />
   );
 };
 
@@ -97,17 +91,5 @@ const styles = StyleSheet.create({
   headingCopy: { flex: 1, gap: spacing.xs },
   heading: { fontSize: 24, fontWeight: '700', letterSpacing: -0.4 },
   description: { fontSize: 14, lineHeight: 20, maxWidth: 620 },
-  button: {
-    alignItems: 'center',
-    borderRadius: radii.md,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 48,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md
-  },
-  buttonLabel: { fontSize: 15, fontWeight: Platform.OS === 'ios' ? '600' : '700' },
-  pressed: { opacity: Platform.OS === 'ios' ? 0.68 : 0.82, transform: [{ scale: 0.98 }] },
-  disabled: { opacity: 0.45 },
   surface: { borderRadius: radii.lg, borderWidth: 1, padding: spacing.lg }
 });

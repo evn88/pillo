@@ -1,40 +1,66 @@
 import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
-import { Button as UniversalButton, Host as UniversalHost, Text as UniversalText } from '@expo/ui';
+import { Button as UniversalButton, Host as UniversalHost } from '@expo/ui';
 import { Button as SwiftUIButton, Host as SwiftUIHost } from '@expo/ui/swift-ui';
 import {
   accessibilityLabel,
   buttonBorderShape,
   buttonStyle,
   controlSize,
+  disabled as disabledModifier,
   frame,
   labelStyle,
   tint
 } from '@expo/ui/swift-ui/modifiers';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
-type NativePrimaryButtonProps = {
+type NativeActionButtonProps = {
   disabled?: boolean;
+  fill?: boolean;
+  fullWidth?: boolean;
   isDark: boolean;
   label: string;
   onPress: () => void;
   tintColor: string;
+  tone?: 'primary' | 'secondary' | 'danger';
+  systemImage?: SFSymbol;
 };
 
-export const NativePrimaryButton = ({ disabled = false, isDark, label, onPress, tintColor }: NativePrimaryButtonProps) => {
+export const NativeActionButton = ({
+  disabled = false,
+  fill = false,
+  fullWidth = false,
+  isDark,
+  label,
+  onPress,
+  systemImage,
+  tintColor,
+  tone = 'primary'
+}: NativeActionButtonProps) => {
   const { width } = useWindowDimensions();
   const buttonWidth = Math.min(width - 64, 720);
+  const isPrimary = tone === 'primary';
+  const isDanger = tone === 'danger';
+  const hostStyle = [styles.host, fullWidth && { width: buttonWidth }, fill && styles.fillHost];
+  const buttonFrame = fullWidth
+    ? frame({ width: buttonWidth, height: 56 })
+    : fill
+      ? frame({ maxWidth: 1000, minHeight: 56 })
+      : frame({ minHeight: 56 });
 
   if (Platform.OS === 'ios') {
     return (
-      <SwiftUIHost colorScheme={isDark ? 'dark' : 'light'} style={[styles.primaryHost, { width: buttonWidth }]}>
+      <SwiftUIHost colorScheme={isDark ? 'dark' : 'light'} matchContents={!fullWidth && !fill} style={hostStyle}>
         <SwiftUIButton
           label={label}
           onPress={onPress}
-          systemImage="plus"
+          role={isDanger ? 'destructive' : undefined}
+          systemImage={systemImage}
           modifiers={[
-            buttonStyle('glassProminent'),
+            buttonStyle(isPrimary ? 'glassProminent' : 'glass'),
             buttonBorderShape('capsule'),
             controlSize('extraLarge'),
-            frame({ width: buttonWidth, height: 56 }),
+            disabledModifier(disabled),
+            buttonFrame,
             tint(tintColor)
           ]}
         />
@@ -43,13 +69,31 @@ export const NativePrimaryButton = ({ disabled = false, isDark, label, onPress, 
   }
 
   return (
-    <UniversalHost colorScheme={isDark ? 'dark' : 'light'} seedColor={tintColor} style={[styles.primaryHost, { width: buttonWidth }]}>
-      <UniversalButton disabled={disabled} label={`＋  ${label}`} onPress={onPress} style={{ borderRadius: 999, height: 56, width: buttonWidth }} />
+    <UniversalHost colorScheme={isDark ? 'dark' : 'light'} matchContents={!fullWidth && !fill} seedColor={tintColor} style={hostStyle}>
+      <UniversalButton
+        disabled={disabled}
+        label={systemImage === 'plus' ? `＋  ${label}` : label}
+        onPress={onPress}
+        variant={isPrimary ? 'filled' : 'outlined'}
+        style={{ ...styles.universalButton, ...(fullWidth ? { width: buttonWidth } : {}) }}
+      />
     </UniversalHost>
   );
 };
 
-export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativePrimaryButtonProps, 'isDark' | 'onPress' | 'tintColor'>) => {
+export const NativePrimaryButton = ({ disabled = false, isDark, label, onPress, tintColor }: Pick<NativeActionButtonProps, 'disabled' | 'isDark' | 'label' | 'onPress' | 'tintColor'>) => (
+  <NativeActionButton
+    disabled={disabled}
+    fullWidth
+    isDark={isDark}
+    label={label}
+    onPress={onPress}
+    systemImage="plus"
+    tintColor={tintColor}
+  />
+);
+
+export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeActionButtonProps, 'isDark' | 'onPress' | 'tintColor'>) => {
   if (Platform.OS === 'ios') {
     return (
       <SwiftUIHost colorScheme={isDark ? 'dark' : 'light'} style={styles.iconHost}>
@@ -74,17 +118,16 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeP
   return (
     <View accessibilityLabel="История приёма" accessibilityRole="button" style={styles.iconHost}>
       <UniversalHost colorScheme={isDark ? 'dark' : 'light'} seedColor={tintColor} style={styles.iconHost}>
-        <UniversalButton onPress={onPress} style={styles.universalIcon}>
-          <UniversalText textStyle={styles.universalIconText}>↶</UniversalText>
-        </UniversalButton>
+        <UniversalButton label="↶" onPress={onPress} style={styles.universalIcon} />
       </UniversalHost>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  primaryHost: { height: 60, width: '100%' },
+  host: { height: 60 },
+  fillHost: { flex: 1, width: '100%' },
   iconHost: { height: 60, width: 60 },
-  universalIcon: { borderRadius: 999, height: 56, width: 56 },
-  universalIconText: { fontSize: 24, fontWeight: '600' }
+  universalButton: { borderRadius: 999, height: 56 },
+  universalIcon: { borderRadius: 999, height: 56, width: 56 }
 });
