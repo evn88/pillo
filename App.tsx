@@ -355,7 +355,7 @@ const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete,
           const progress = Math.min(100, Math.round((medication.stockUnits / packageSize) * 100));
 
           return (
-            <SwipeableCard deleteColor={palette.danger} key={medication.id} onDelete={() => onDelete(medication)} onPress={() => onEdit(medication)}>
+            <SwipeableCard deleteColor={palette.danger} key={medication.id} onDelete={() => onDelete(medication)} onPress={() => onEdit(medication)} style={styles.gridCardContainer}>
             <Surface palette={palette} style={[styles.gridCard, isLowStock ? { borderColor: palette.warning } : undefined]}>
               <View style={styles.cardHeader}>
                 <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}>
@@ -415,7 +415,7 @@ const ScheduleScreen = ({ isDark, medications, onAdd, onDelete, onEdit, palette,
       )}
       </ScrollView>
       <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}>
-        <NativePrimaryButton disabled={medications.length === 0} isDark={isDark} label="Добавить правило" onPress={onAdd} tintColor={palette.primary} />
+        <NativePrimaryButton disabled={medications.length === 0} isDark={isDark} label="Добавить расписание" onPress={onAdd} tintColor={palette.primary} />
       </View>
     </View>
   );
@@ -507,6 +507,7 @@ const styles = StyleSheet.create({
   historyCopy: { flex: 1 },
   historyTitle: { fontSize: 14, fontWeight: '700' },
   cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  gridCardContainer: { flexBasis: 300, flexGrow: 1 },
   gridCard: { flexBasis: 300, flexGrow: 1, gap: spacing.lg },
   intakeTopline: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.md },
   intakeTime: { fontSize: 18, fontWeight: '800' },

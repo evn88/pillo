@@ -38,9 +38,8 @@ export const NativeActionButton = ({
 }: NativeActionButtonProps) => {
   const { width } = useWindowDimensions();
   const buttonWidth = Math.min(width - 64, 720);
-  const isPrimary = tone === 'primary';
   const isDanger = tone === 'danger';
-  const hostStyle = [styles.host, fullWidth && { width: buttonWidth }, fill && styles.fillHost];
+  const hostStyle = [styles.host, fullWidth && [styles.fullWidthHost, { width: buttonWidth }], fill && styles.fillHost];
   const buttonFrame = fullWidth
     ? frame({ width: buttonWidth, height: 56 })
     : fill
@@ -56,7 +55,7 @@ export const NativeActionButton = ({
           role={isDanger ? 'destructive' : undefined}
           systemImage={systemImage}
           modifiers={[
-            buttonStyle(isPrimary ? 'glassProminent' : 'glass'),
+            buttonStyle('glass'),
             buttonBorderShape('capsule'),
             controlSize('extraLarge'),
             disabledModifier(disabled),
@@ -74,7 +73,7 @@ export const NativeActionButton = ({
         disabled={disabled}
         label={systemImage === 'plus' ? `＋  ${label}` : label}
         onPress={onPress}
-        variant={isPrimary ? 'filled' : 'outlined'}
+        variant="outlined"
         style={{ ...styles.universalButton, ...(fullWidth ? { width: buttonWidth } : {}) }}
       />
     </UniversalHost>
@@ -126,6 +125,7 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
 
 const styles = StyleSheet.create({
   host: { height: 60 },
+  fullWidthHost: { alignSelf: 'center' },
   fillHost: { flex: 1, width: '100%' },
   iconHost: { height: 60, width: 60 },
   universalButton: { borderRadius: 999, height: 56 },

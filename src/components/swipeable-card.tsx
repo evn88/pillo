@@ -5,7 +5,9 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  View
+  View,
+  type StyleProp,
+  type ViewStyle
 } from 'react-native';
 
 const actionWidth = 92;
@@ -16,9 +18,10 @@ type SwipeableCardProps = {
   deleteColor: string;
   onDelete: () => void;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
-export const SwipeableCard = ({ children, deleteColor, onDelete, onPress }: SwipeableCardProps) => {
+export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const currentOffset = useRef(0);
 
@@ -73,7 +76,7 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress }: Swip
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <Pressable
         accessibilityLabel="Удалить"
         accessibilityRole="button"
