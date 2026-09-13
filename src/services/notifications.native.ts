@@ -51,6 +51,7 @@ export const notificationGateway: NotificationGateway = {
     .map(item => ({ id: item.identifier,
       fingerprint: typeof item.content.data?.pilloFingerprint === 'string' ? item.content.data.pilloFingerprint : null })),
   cancel: id => Notifications.cancelScheduledNotificationAsync(id),
+  dismissDelivered: () => Notifications.dismissAllNotificationsAsync(),
   schedule: async job => {
     await Notifications.scheduleNotificationAsync({ identifier: job.id,
       content: { title: 'Pillo', body: 'Время отметить приём препарата', sound: 'default',

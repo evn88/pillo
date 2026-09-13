@@ -26,6 +26,7 @@ export interface NotificationGateway {
   list: () => Promise<{ id: string; fingerprint: string | null }[]>;
   schedule: (notification: PlannedNotification) => Promise<void>;
   cancel: (id: string) => Promise<void>;
+  dismissDelivered: () => Promise<void>;
 }
 
 export type PilloState = {

@@ -18,6 +18,7 @@
       "bundleIdentifier": "com.vershkov.pillo"
     },
     "android": {
+      "allowBackup": false,
       "package": "com.vershkov.pillo",
       "adaptiveIcon": {
         "backgroundColor": "#17104F",

@@ -125,6 +125,11 @@ export const createPilloController = ({ open, notifications, now }: Dependencies
             notifications: { ...document.notifications, desiredRevision: document.notifications.desiredRevision + (relevant ? 1 : 0) }
           }, clear);
         }
+        if (clear) {
+          void notifications.dismissDelivered().catch(() => {
+            publish({ notificationStatus: 'error', notificationError: 'Данные очищены, но системные уведомления ещё не удалены. Повторите очистку.' });
+          });
+        }
         if (relevant || command.type === 'refresh-calendar') requestSync();
         return { ok: true };
       } catch (error) {

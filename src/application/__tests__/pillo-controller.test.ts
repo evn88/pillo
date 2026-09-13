@@ -34,6 +34,7 @@ const fixture = () => {
     list: vi.fn(async () => [...jobs.values()]),
     schedule: vi.fn(async job => { jobs.set(job.id, job); }),
     cancel: vi.fn(async id => { jobs.delete(id); })
+    , dismissDelivered: vi.fn(async () => undefined)
   };
   const controller = createPilloController({ open: async () => repository, notifications: gateway, now: () => now });
   return { controller, gateway, repository, jobs, saved: () => saved, failNextSave: () => { failSave = true; } };
@@ -202,6 +203,17 @@ describe('восстановимая проекция уведомлений', (
     expect(await controller.execute('missing', { type: 'record-manual', intakeId: 'x', medicationId: 'missing', doseUnits: 1 })).toMatchObject({ ok: false, kind: 'validation' });
     expect(saved()).toBe(previous);
     expect(controller.getState().snapshot.medications[0]?.id).toBe(medication.id);
+    await controller.dispose();
+  });
+  it('очищает доставленные уведомления после подтверждённой очистки данных', async () => {
+    const { controller, gateway, saved } = fixture();
+    await controller.start(); await controller.whenIdle();
+
+    expect(await controller.execute('clear-data', { type: 'clear-data' })).toEqual({ ok: true });
+    await controller.whenIdle();
+
+    expect(saved().snapshot.medications).toEqual([]);
+    expect(gateway.dismissDelivered).toHaveBeenCalledOnce();
     await controller.dispose();
   });
 });
