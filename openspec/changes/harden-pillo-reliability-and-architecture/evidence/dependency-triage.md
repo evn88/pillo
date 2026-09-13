@@ -16,3 +16,9 @@
 | `expo` и `expo-router` aggregate advisories | Прямые runtime зависимости, но единственный предложенный audit fix — несовместимый downgrade. | Сохранять текущие совместимые SDK 57 patch-версии, мониторить advisories и не применять `npm audit fix --force`. |
 
 `npm audit fix --dry-run --json` завершился внутренней ошибкой npm 10.9.4 (`Cannot read properties of null (reading 'edgesOut')`) и не использовался как основание для изменения lock-файла. Точечное обновление Vitest потребовало `--legacy-peer-deps` из-за той же ошибки peer-resolver; после него тесты, type-check и lint проходят.
+
+## Повторная автоматическая приёмка — 2026-09-13
+
+После добавления `expo-linking` для Expo Router и прямой type-only зависимости `sf-symbols-typescript` повторный `npm audit --json` подтвердил тот же итог: **17 advisory** — 4 high, 13 moderate, 0 critical. Состав цепочек совпадает с таблицей выше; новых прямых runtime advisory не появилось.
+
+В этом запуске также завершились с exit 0: `npm run type-check`, `npm test` (66 тестов), `npm run lint`, `npx expo install --check`, строгий `openspec validate harden-pillo-reliability-and-architecture --strict`, `git diff --check`, а также Expo exports для iOS и Android. Exports доказывают сборку JS/Hermes-графа, но не native release build или установку на устройство.
