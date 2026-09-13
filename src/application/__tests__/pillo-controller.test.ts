@@ -27,7 +27,10 @@ const fixture = () => {
     close: vi.fn(async () => undefined)
   };
   const gateway: NotificationGateway = {
-    access: vi.fn(async () => ({ authorization: 'granted' as const, exact: 'system' as const })),
+    access: vi.fn(async () => ({ authorization: 'granted' as const, exact: 'system' as const, channel: 'unsupported' as const, canAskAgain: true, requested: false })),
+    openSettings: vi.fn(async () => undefined),
+    getLastResponse: vi.fn(async () => null),
+    subscribeResponses: vi.fn(() => () => undefined),
     list: vi.fn(async () => [...jobs.values()]),
     schedule: vi.fn(async job => { jobs.set(job.id, job); }),
     cancel: vi.fn(async id => { jobs.delete(id); })
@@ -148,7 +151,7 @@ describe('восстановимая проекция уведомлений', (
   });
   it('запрет разрешения виден и не запускает автоматический запрос', async () => {
     const { controller, gateway } = fixture();
-    vi.mocked(gateway.access).mockResolvedValue({ authorization: 'denied', exact: 'unknown' });
+    vi.mocked(gateway.access).mockResolvedValue({ authorization: 'denied', exact: 'unknown', channel: 'blocked', canAskAgain: false, requested: false });
     await controller.start(); await controller.whenIdle();
     expect(controller.getState().notificationStatus).toBe('blocked');
     expect(gateway.access).toHaveBeenCalledWith(false);
@@ -169,7 +172,7 @@ describe('восстановимая проекция уведомлений', (
   it('отмена данных при запрете permission удаляет устаревшее событие', async () => {
     const { controller, gateway, jobs } = fixture();
     await controller.start(); await controller.whenIdle();
-    vi.mocked(gateway.access).mockResolvedValue({ authorization: 'denied', exact: 'unknown' });
+    vi.mocked(gateway.access).mockResolvedValue({ authorization: 'denied', exact: 'unknown', channel: 'blocked', canAskAgain: false, requested: false });
     await controller.execute('delete-denied', { type: 'delete-rule', ruleId: 'r1' });
     await controller.whenIdle();
     expect(jobs.size).toBe(0);

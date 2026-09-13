@@ -1,7 +1,7 @@
 import type { CommandResult } from '../application/contracts';
-import { parseQuantity } from '../domain/validation';
+import { medicationFormResolver, toMedicationInput, type MedicationFormValues } from '../hooks/form-schema';
 import { useFormCommand } from '../hooks/use-form-command';
-import { useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -35,30 +35,33 @@ export const MedicationForm = ({
   visible
 }: MedicationFormProps) => {
   const palette = isDark ? colors.dark : colors.light;
-  const [name, setName] = useState(medication?.name ?? '');
-  const [dosage, setDosage] = useState(medication?.dosage ?? '');
-  const [form, setForm] = useState(medication?.form ?? 'таблетка');
-  const [stockUnits, setStockUnits] = useState(String(medication?.stockUnits ?? 0));
-  const [unitsPerPackage, setUnitsPerPackage] = useState(String(medication?.unitsPerPackage ?? 30));
-  const [minThresholdUnits, setMinThresholdUnits] = useState(
-    String(medication?.minThresholdUnits ?? 5)
-  );
+  const medicationId = medication?.id ?? newId;
   const { isPending, error, submit } = useFormCommand();
+  const { control, formState: { errors }, handleSubmit } = useForm<MedicationFormValues>({
+    defaultValues: {
+      name: medication?.name ?? '',
+      dosage: medication?.dosage ?? '',
+      form: medication?.form ?? 'таблетка',
+      stockUnits: String(medication?.stockUnits ?? 0),
+      unitsPerPackage: String(medication?.unitsPerPackage ?? 30),
+      minThresholdUnits: String(medication?.minThresholdUnits ?? 5)
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: medicationFormResolver(medicationId, medication, () => new Date())
+  });
 
-  const fieldStyle = [styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }];
+  const fieldStyle = (field: keyof MedicationFormValues) => [styles.input, {
+    backgroundColor: palette.surface,
+    borderColor: errors[field] ? palette.danger : palette.border,
+    color: palette.text
+  }];
 
-  const handleSave = async () => {
-    if (!name.trim()) return;
+  const handleSave = handleSubmit(async values => {
     await submit(commandId => onSave({
-      id: medication?.id ?? newId,
-      name: name.trim(),
-      dosage: dosage.trim(),
-      form: form.trim(),
-      stockUnits: parseQuantity(stockUnits, 'Остаток'),
-      unitsPerPackage: parseQuantity(unitsPerPackage, 'В упаковке', true),
-      minThresholdUnits: parseQuantity(minThresholdUnits, 'Низкий запас')
-    }, commandId), onClose, JSON.stringify([name, dosage, form, stockUnits, unitsPerPackage, minThresholdUnits]));
-  };
+      ...toMedicationInput(values, medicationId)
+    }, commandId), onClose, JSON.stringify(values));
+  });
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
@@ -80,57 +83,69 @@ export const MedicationForm = ({
           <View style={styles.fields}>
             <View style={styles.field}>
               <Text style={[styles.label, { color: palette.text }]}>Название</Text>
-              <TextInput
-                autoFocus
-                clearButtonMode="while-editing"
-                keyboardAppearance={isDark ? 'dark' : 'light'}
-                onChangeText={setName}
-                placeholder="Например, витамин D"
-                placeholderTextColor={palette.textMuted}
-                returnKeyType="next"
-                selectionColor={palette.primary}
-                style={fieldStyle}
-                value={name}
-              />
+              <Controller control={control} name="name" render={({ field }) => (
+                <TextInput
+                  accessibilityHint={errors.name?.message}
+                  accessibilityLabel="Название препарата"
+                  autoFocus
+                  clearButtonMode="while-editing"
+                  keyboardAppearance={isDark ? 'dark' : 'light'}
+                  onBlur={field.onBlur}
+                  onChangeText={field.onChange}
+                  placeholder="Например, витамин D"
+                  placeholderTextColor={palette.textMuted}
+                  returnKeyType="next"
+                  selectionColor={palette.primary}
+                  style={fieldStyle('name')}
+                  value={field.value}
+                />
+              )} />
+              {errors.name?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.name.message}</Text> : null}
             </View>
             <View style={styles.row}>
               <View style={[styles.field, styles.half]}>
                 <Text style={[styles.label, { color: palette.text }]}>Дозировка</Text>
-                <TextInput
-                  clearButtonMode="while-editing"
-                  keyboardAppearance={isDark ? 'dark' : 'light'}
-                  onChangeText={setDosage}
-                  placeholder="10 мг"
-                  placeholderTextColor={palette.textMuted}
-                  selectionColor={palette.primary}
-                  style={fieldStyle}
-                  value={dosage}
-                />
+                <Controller control={control} name="dosage" render={({ field }) => (
+                  <TextInput accessibilityHint={errors.dosage?.message} accessibilityLabel="Дозировка" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} placeholder="10 мг" placeholderTextColor={palette.textMuted} selectionColor={palette.primary} style={fieldStyle('dosage')} value={field.value} />
+                )} />
+                {errors.dosage?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.dosage.message}</Text> : null}
               </View>
               <View style={[styles.field, styles.half]}>
                 <Text style={[styles.label, { color: palette.text }]}>Форма</Text>
-                <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setForm} selectionColor={palette.primary} style={fieldStyle} value={form} />
+                <Controller control={control} name="form" render={({ field }) => (
+                  <TextInput accessibilityHint={errors.form?.message} accessibilityLabel="Форма препарата" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={fieldStyle('form')} value={field.value} />
+                )} />
+                {errors.form?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.form.message}</Text> : null}
               </View>
             </View>
             <View style={styles.row}>
               <View style={[styles.field, styles.third]}>
                 <Text style={[styles.label, { color: palette.text }]}>Остаток</Text>
-                <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onChangeText={setStockUnits} selectionColor={palette.primary} style={fieldStyle} value={stockUnits} />
+                <Controller control={control} name="stockUnits" render={({ field }) => (
+                  <TextInput accessibilityHint={errors.stockUnits?.message} accessibilityLabel="Остаток препарата" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={fieldStyle('stockUnits')} value={field.value} />
+                )} />
+                {errors.stockUnits?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.stockUnits.message}</Text> : null}
               </View>
               <View style={[styles.field, styles.third]}>
                 <Text style={[styles.label, { color: palette.text }]}>В упаковке</Text>
-                <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="number-pad" onChangeText={setUnitsPerPackage} selectionColor={palette.primary} style={fieldStyle} value={unitsPerPackage} />
+                <Controller control={control} name="unitsPerPackage" render={({ field }) => (
+                  <TextInput accessibilityHint={errors.unitsPerPackage?.message} accessibilityLabel="Количество в упаковке" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="number-pad" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={fieldStyle('unitsPerPackage')} value={field.value} />
+                )} />
+                {errors.unitsPerPackage?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.unitsPerPackage.message}</Text> : null}
               </View>
               <View style={[styles.field, styles.third]}>
                 <Text style={[styles.label, { color: palette.text }]}>Низкий запас</Text>
-                <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onChangeText={setMinThresholdUnits} selectionColor={palette.primary} style={fieldStyle} value={minThresholdUnits} />
+                <Controller control={control} name="minThresholdUnits" render={({ field }) => (
+                  <TextInput accessibilityHint={errors.minThresholdUnits?.message} accessibilityLabel="Порог низкого запаса" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={fieldStyle('minThresholdUnits')} value={field.value} />
+                )} />
+                {errors.minThresholdUnits?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.minThresholdUnits.message}</Text> : null}
               </View>
             </View>
           </View>
 
           {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
           <ActionButton
-            disabled={!name.trim() || isPending}
+            disabled={isPending}
             label={isPending ? 'Сохраняем…' : 'Сохранить'}
             onPress={() => void handleSave()}
             palette={palette}
@@ -150,6 +165,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   fields: { gap: spacing.lg },
   field: { gap: spacing.sm },
+  fieldError: { fontSize: 13, lineHeight: 18 },
   label: { fontSize: 14, fontWeight: '600' },
   input: { borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, fontSize: 16, minHeight: 50, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },

@@ -38,7 +38,7 @@ const appIcon = require('./assets/icon-pillo.png') as number;
 
 const formatDose = (value: number): string => `${value} ед.`;
 
-export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
+export const PilloApplication = ({ activeTab, focusedIntakeId }: { activeTab: PilloTab; focusedIntakeId?: string }) => {
   const colorScheme = useColorScheme();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
@@ -52,6 +52,7 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
     notificationError,
     notificationStatus,
     notificationAccess,
+    openNotificationSettings,
     coverageEndsAt,
     calendarCoverage,
     addPackage,
@@ -140,8 +141,11 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
             <Text style={{ color: palette.textMuted }}>Напоминания: {notificationStatus === 'ready' ? 'обновлены' : notificationStatus === 'disabled' ? 'выключены' : notificationStatus === 'syncing' ? 'обновляются' : 'требуют проверки'}.</Text>
             {snapshot.settings.notificationsEnabled ? <>
               <Text style={{ color: palette.textMuted }}>Покрытие: {notificationStatus === 'ready' && coverageEndsAt ? new Date(coverageEndsAt).toLocaleString('ru-RU') : 'не подтверждено'}. Для продления открывайте приложение.</Text>
+              {notificationAccess?.requested ? <Text style={{ color: palette.textMuted }}>Запрос разрешения отправлен системе.</Text> : null}
+              {notificationAccess?.authorization === 'denied' ? <Text style={{ color: palette.danger }}>Системные уведомления запрещены{notificationAccess.canAskAgain ? '; повторите запрос' : '; откройте настройки устройства'}.</Text> : null}
               {notificationAccess?.exact === 'unknown' ? <Text style={{ color: palette.textMuted }}>Точное время доставки Android не подтверждено.</Text> : null}
               {notificationAccess?.authorization === 'quiet' ? <Text style={{ color: palette.textMuted }}>Система разрешает тихие уведомления.</Text> : null}
+              {notificationAccess?.channel === 'blocked' ? <Text style={{ color: palette.danger }}>Канал напоминаний отключён в настройках Android.</Text> : null}
               <ActionButton label="Обновить напоминания" onPress={retryNotifications} palette={palette} />
             </> : null}
           </View> : null}
@@ -150,6 +154,7 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
               <TodayScreen
                 isDark={isDark}
                 isTablet={isTablet}
+                focusedIntakeId={focusedIntakeId}
                 onOpenHistory={() => setHistoryOpen(true)}
                 onOpenMedications={() => router.navigate('/medications')}
                 onOpenManualIntake={() => {
@@ -217,6 +222,8 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
                   )
                 }
                 onChange={updateSettings}
+                onOpenNotificationSettings={() => void openNotificationSettings()}
+                notificationAccess={notificationAccess}
                 palette={palette}
                 settings={snapshot.settings}
               />
@@ -276,6 +283,7 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
 type Palette = typeof colors.light | typeof colors.dark;
 
 const TodayScreen = ({
+  focusedIntakeId,
   isDark,
   isTablet,
   onOpenHistory,
@@ -285,6 +293,7 @@ const TodayScreen = ({
   palette,
   snapshot
 }: {
+  focusedIntakeId?: string;
   isDark: boolean;
   isTablet: boolean;
   onOpenHistory: () => void;
@@ -299,6 +308,10 @@ const TodayScreen = ({
   const todayIntakes = snapshot.intakes
     .filter(intake => intake.localDate === todayKey)
     .sort((a, b) => a.localTime.localeCompare(b.localTime));
+  const focusedIntake = focusedIntakeId ? snapshot.intakes.find(intake => intake.id === focusedIntakeId) : undefined;
+  const displayedIntakes = focusedIntake && !todayIntakes.some(intake => intake.id === focusedIntake.id)
+    ? [focusedIntake, ...todayIntakes]
+    : todayIntakes;
   const lowStock = snapshot.medications.filter(medication => medication.stockUnits <= medication.minThresholdUnits);
   const [legacyUndoIntake, setLegacyUndoIntake] = useState<Intake | null>(null);
 
@@ -317,7 +330,7 @@ const TodayScreen = ({
         <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ВСЕ ПРИЁМЫ НА СЕГОДНЯ</Text>
         <View style={isTablet ? styles.tabletColumns : styles.singleColumn}>
         <View style={styles.primaryColumn}>
-          {todayIntakes.length === 0 ? (
+          {displayedIntakes.length === 0 ? (
             <Surface palette={palette} style={styles.emptySurface}>
               <Text style={styles.emptyIcon}>✓</Text>
               <Text style={[styles.emptyTitle, { color: palette.text }]}>На сегодня приёмов нет</Text>
@@ -326,14 +339,18 @@ const TodayScreen = ({
             </Surface>
           ) : (
             <View style={styles.list}>
-              {todayIntakes.map(intake => {
+              {displayedIntakes.map(intake => {
                 const medication = medicationById.get(intake.medicationId);
                 const isLowStock = medication ? medication.stockUnits <= medication.minThresholdUnits : false;
                 const hasStockDiscrepancy = intake.status === 'PENDING' && medication
                   ? medication.stockUnits < intake.doseUnits
                   : false;
                 return (
-                  <Surface key={intake.id} palette={palette} style={isLowStock ? { borderColor: palette.warning } : undefined}>
+                  <Surface
+                    key={intake.id}
+                    palette={palette}
+                    style={focusedIntake?.id === intake.id ? { borderColor: palette.primary, borderWidth: 2 } : isLowStock ? { borderColor: palette.warning } : undefined}
+                  >
                     <View style={styles.cardHeader}>
                       <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}>
                         <Text style={[styles.medicationGlyphText, { color: palette.primary }]}>✦</Text>
@@ -488,7 +505,7 @@ const ScheduleScreen = ({ isDark, medications, onAdd, onDelete, onEdit, palette,
   );
 };
 
-const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: { isTablet: boolean; onChange: (settings: Partial<PilloSettings>) => Promise<CommandResult>; onClearData: () => void; palette: Palette; settings: PilloSettings }) => (
+const SettingsScreen = ({ isTablet, onChange, onClearData, onOpenNotificationSettings, notificationAccess, palette, settings }: { isTablet: boolean; onChange: (settings: Partial<PilloSettings>) => Promise<CommandResult>; onClearData: () => void; onOpenNotificationSettings: () => void; notificationAccess: PilloContextValue['notificationAccess']; palette: Palette; settings: PilloSettings }) => (
   <ScrollView contentContainerStyle={styles.screenContent}>
     <Text style={[styles.eyebrow, { color: palette.textMuted }]}>УВЕДОМЛЕНИЯ</Text>
     <View style={isTablet ? styles.settingsGrid : styles.list}>
@@ -498,6 +515,11 @@ const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: 
           <View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Push-уведомления</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Системные локальные напоминания о приёмах.</Text></View>
           <Switch accessibilityLabel="Push-уведомления" ios_backgroundColor={palette.surfaceMuted} onValueChange={value => void onChange({ notificationsEnabled: value })} trackColor={{ false: palette.surfaceMuted, true: Platform.OS === 'ios' ? palette.success : palette.successSoft }} thumbColor={Platform.OS === 'android' ? (settings.notificationsEnabled ? palette.success : palette.textMuted) : undefined} value={settings.notificationsEnabled} />
         </View>
+        {settings.notificationsEnabled && notificationAccess?.authorization === 'denied' ? (
+          <View style={styles.inlineAction}>
+            <ActionButton label="Открыть настройки уведомлений" onPress={onOpenNotificationSettings} palette={palette} tone="secondary" />
+          </View>
+        ) : null}
       </Surface>
       <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ВНЕШНИЙ ВИД</Text>
       <Surface palette={palette} style={styles.gridCard}>

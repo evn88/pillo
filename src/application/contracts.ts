@@ -10,10 +10,19 @@ export interface PilloRepository {
   close: () => Promise<void>;
 }
 
-export type NotificationAccess = { authorization: 'granted' | 'quiet' | 'denied'; exact: 'unknown' | 'system' };
+export type NotificationAccess = {
+  authorization: 'granted' | 'quiet' | 'denied';
+  exact: 'unknown' | 'system';
+  channel: 'available' | 'blocked' | 'unsupported';
+  canAskAgain: boolean;
+  requested: boolean;
+};
 export type PlannedNotification = { id: string; at: string; intakeId: string; fingerprint: string };
 export interface NotificationGateway {
   access: (request: boolean) => Promise<NotificationAccess>;
+  openSettings: () => Promise<void>;
+  getLastResponse: () => Promise<unknown | null>;
+  subscribeResponses: (listener: (response: unknown) => void) => () => void;
   list: () => Promise<{ id: string; fingerprint: string | null }[]>;
   schedule: (notification: PlannedNotification) => Promise<void>;
   cancel: (id: string) => Promise<void>;
@@ -34,6 +43,7 @@ export type PilloState = {
 export type PilloActions = {
   retry: () => void;
   retryNotifications: () => void;
+  openNotificationSettings: () => Promise<CommandResult>;
   createMedicationId: () => string;
   saveMedication: (input: MedicationInput, commandId?: string) => Promise<CommandResult>;
   deleteMedication: (id: string) => Promise<CommandResult>;

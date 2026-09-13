@@ -2,8 +2,7 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { NativeActionButton } from '@/components/native-action-button';
-import { colors } from '@/theme/tokens';
-import { radii, spacing } from '@/theme/tokens';
+import { colors, radii, spacing } from '@/theme/tokens';
 
 type Palette = {
   background: string;

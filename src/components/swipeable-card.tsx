@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
   PanResponder,
@@ -22,12 +22,11 @@ type SwipeableCardProps = {
 };
 
 export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
-  const translateX = useRef(new Animated.Value(0)).current;
+  const [translateX] = useState(() => new Animated.Value(0));
+  const [panResponder, setPanResponder] = useState<ReturnType<typeof PanResponder.create> | null>(null);
   const currentOffset = useRef(0);
-  const deleteCallback = useRef(onDelete);
-  useLayoutEffect(() => { deleteCallback.current = onDelete; }, [onDelete]);
 
-  const animateTo = (value: number) => {
+  const animateTo = useCallback((value: number) => {
     currentOffset.current = value;
     Animated.spring(translateX, {
       damping: 22,
@@ -36,15 +35,15 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style 
       toValue: value,
       useNativeDriver: true
     }).start();
-  };
+  }, [translateX]);
 
-  const deleteCard = () => {
+  const deleteCard = useCallback(() => {
     animateTo(0);
-    deleteCallback.current();
-  };
+    onDelete();
+  }, [animateTo, onDelete]);
 
-  const panResponder = useRef(
-    PanResponder.create({
+  useEffect(() => {
+    setPanResponder(PanResponder.create({
       onMoveShouldSetPanResponder: (_, gesture) =>
         Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy) && gesture.dx < 0,
       onPanResponderGrant: () => {
@@ -65,17 +64,17 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style 
         animateTo(nextValue < -actionWidth / 2 ? -actionWidth : 0);
       },
       onPanResponderTerminate: () => animateTo(0)
-    })
-  ).current;
+    }));
+  }, [animateTo, deleteCard, translateX]);
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     if (currentOffset.current !== 0) {
       animateTo(0);
       return;
     }
 
     onPress();
-  };
+  }, [animateTo, onPress]);
 
   return (
     <View style={[styles.container, style]}>
@@ -88,7 +87,7 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style 
         <Text style={styles.deleteIcon}>⌫</Text>
         <Text style={styles.deleteLabel}>Удалить</Text>
       </Pressable>
-      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder.panHandlers}>
+      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder?.panHandlers}>
         <Pressable
           accessibilityActions={[{ name: 'activate', label: 'Изменить' }, { name: 'delete', label: 'Удалить' }]}
           accessibilityHint="Нажмите для редактирования. Смахните влево для удаления."

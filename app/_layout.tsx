@@ -2,11 +2,12 @@ import { useColorScheme } from 'react-native';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { PilloProvider } from '@/providers/pillo-provider';
-import { usePilloContext } from '@/providers/pillo-provider';
+import { PilloProvider, usePilloContext } from '@/providers/pillo-provider';
+import { useNotificationResponseNavigation } from '@/hooks/use-notification-response-navigation';
 import { colors } from '@/theme/tokens';
 
 const TabLayout = () => {
+  useNotificationResponseNavigation();
   const colorScheme = useColorScheme();
   const { snapshot } = usePilloContext();
   const isDark = snapshot.settings.theme === 'DARK' ||

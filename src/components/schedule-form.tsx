@@ -1,8 +1,8 @@
 import type { CommandResult } from '../application/contracts';
-import { parseQuantity } from '../domain/validation';
+import { scheduleFormResolver, toScheduleRule, type ScheduleFormValues } from '../hooks/form-schema';
 import { useFormCommand } from '../hooks/use-form-command';
-import { useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Controller, useForm } from 'react-hook-form';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Medication, ScheduleRule } from '@/domain/types';
@@ -32,36 +32,37 @@ type ScheduleFormProps = {
 export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId, visible }: ScheduleFormProps) => {
   const palette = isDark ? colors.dark : colors.light;
   const { isPending, error, submit } = useFormCommand();
-  const [medicationId, setMedicationId] = useState(rule?.medicationId ?? medications[0]?.id ?? '');
-  const [time, setTime] = useState(rule?.time ?? '09:00');
-  const [doseUnits, setDoseUnits] = useState(String(rule?.doseUnits ?? 1));
-  const [selectedDays, setSelectedDays] = useState(rule?.daysOfWeek ?? days.map(day => day.value));
-  const [startDate, setStartDate] = useState(rule?.startDate ?? getLocalDateKey(new Date()));
-  const [endDate, setEndDate] = useState(rule?.endDate ?? '');
-  const [comment, setComment] = useState(rule?.comment ?? '');
-  const inputStyle = [styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }];
+  const ruleId = rule?.id ?? newId;
+  const { control, formState: { errors }, handleSubmit } = useForm<ScheduleFormValues>({
+    defaultValues: {
+      medicationId: rule?.medicationId ?? medications[0]?.id ?? '',
+      time: rule?.time ?? '09:00',
+      doseUnits: String(rule?.doseUnits ?? 1),
+      daysOfWeek: rule?.daysOfWeek ?? days.map(day => day.value),
+      startDate: rule?.startDate ?? getLocalDateKey(new Date()),
+      endDate: rule?.endDate ?? '',
+      comment: rule?.comment ?? ''
+    },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: scheduleFormResolver(ruleId, rule?.isActive ?? true)
+  });
+  const inputStyle = (field: keyof ScheduleFormValues) => [styles.input, {
+    backgroundColor: palette.surface,
+    borderColor: errors[field] ? palette.danger : palette.border,
+    color: palette.text
+  }];
 
-  const toggleDay = (value: number) => {
-    setSelectedDays(current => current.includes(value) ? current.filter(day => day !== value) : [...current, value]);
-  };
-
-  const handleSave = async () => {
+  const handleSave = handleSubmit(async values => {
     await submit(commandId => onSave({
-      id: rule?.id ?? newId,
-      medicationId,
-      time,
-      doseUnits: parseQuantity(doseUnits, 'Количество', true),
-      daysOfWeek: selectedDays,
-      startDate,
-      endDate: endDate || null,
-      comment: comment.trim(),
-      isActive: rule?.isActive ?? true
-    }, commandId), onClose, JSON.stringify([medicationId, time, doseUnits, selectedDays, startDate, endDate, comment]));
-  };
+      ...toScheduleRule(values, ruleId, rule?.isActive ?? true)
+    }, commandId), onClose, JSON.stringify(values));
+  });
 
   return (
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
-      <ScrollView contentContainerStyle={[styles.content, { backgroundColor: palette.background }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modal, { backgroundColor: palette.background }]}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.heading}>
           <View style={styles.headingCopy}>
             <Text style={[styles.kicker, { color: palette.primary }]}>РАСПИСАНИЕ</Text>
@@ -72,94 +73,117 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
 
         <View style={styles.field}>
           <Text style={[styles.label, { color: palette.text }]}>Препарат</Text>
-          <View style={styles.options}>
-            {medications.map(medication => (
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: medication.id === medicationId }}
-                android_ripple={{ color: palette.primarySoft }}
-                key={medication.id}
-                onPress={() => setMedicationId(medication.id)}
-                style={[
-                  styles.option,
-                  { backgroundColor: palette.surfaceMuted },
-                  medication.id === medicationId && { backgroundColor: palette.primarySoft }
-                ]}
-              >
-                <Text style={{ color: palette.text, fontWeight: '600' }}>{medication.name}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Controller control={control} name="medicationId" render={({ field }) => (
+            <View accessibilityLabel="Препарат" accessibilityRole="radiogroup" style={styles.options}>
+              {medications.map(medication => (
+                <Pressable
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: medication.id === field.value }}
+                  android_ripple={{ color: palette.primarySoft }}
+                  key={medication.id}
+                  onPress={() => field.onChange(medication.id)}
+                  style={[
+                    styles.option,
+                    { backgroundColor: palette.surfaceMuted },
+                    medication.id === field.value && { backgroundColor: palette.primarySoft }
+                  ]}
+                >
+                  <Text style={{ color: palette.text, fontWeight: '600' }}>{medication.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )} />
+          {errors.medicationId?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.medicationId.message}</Text> : null}
         </View>
 
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Время, ЧЧ:ММ</Text>
-            <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="numbers-and-punctuation" onChangeText={setTime} selectionColor={palette.primary} style={inputStyle} value={time} />
+            <Controller control={control} name="time" render={({ field }) => (
+              <TextInput accessibilityHint={errors.time?.message} accessibilityLabel="Время приёма" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="numbers-and-punctuation" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('time')} value={field.value} />
+            )} />
+            {errors.time?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.time.message}</Text> : null}
           </View>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Количество</Text>
-            <TextInput keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onChangeText={setDoseUnits} selectionColor={palette.primary} style={inputStyle} value={doseUnits} />
+            <Controller control={control} name="doseUnits" render={({ field }) => (
+              <TextInput accessibilityHint={errors.doseUnits?.message} accessibilityLabel="Количество препарата" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('doseUnits')} value={field.value} />
+            )} />
+            {errors.doseUnits?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.doseUnits.message}</Text> : null}
           </View>
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { color: palette.text }]}>Дни недели</Text>
-          <View style={styles.days}>
-            {days.map(day => (
-              <Pressable
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked: selectedDays.includes(day.value) }}
-                android_ripple={{ color: palette.primarySoft, borderless: true }}
-                key={day.value}
-                onPress={() => toggleDay(day.value)}
-                style={[
-                  styles.day,
-                  { backgroundColor: palette.surfaceMuted },
-                  selectedDays.includes(day.value) && { backgroundColor: palette.primary }
-                ]}
-              >
-                <Text style={{ color: selectedDays.includes(day.value) ? palette.surface : palette.text, fontWeight: '700' }}>{day.label}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Controller control={control} name="daysOfWeek" render={({ field }) => (
+            <View style={styles.days}>
+              {days.map(day => {
+                const checked = field.value.includes(day.value);
+                return (
+                  <Pressable
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked }}
+                    android_ripple={{ color: palette.primarySoft, borderless: true }}
+                    key={day.value}
+                    onPress={() => field.onChange(checked ? field.value.filter(value => value !== day.value) : [...field.value, day.value])}
+                    style={[styles.day, { backgroundColor: palette.surfaceMuted }, checked && { backgroundColor: palette.primary }]}
+                  >
+                    <Text style={{ color: checked ? palette.surface : palette.text, fontWeight: '700' }}>{day.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )} />
+          {errors.daysOfWeek?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.daysOfWeek.message}</Text> : null}
         </View>
 
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Начало, ГГГГ-ММ-ДД</Text>
-            <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setStartDate} selectionColor={palette.primary} style={inputStyle} value={startDate} />
+            <Controller control={control} name="startDate" render={({ field }) => (
+              <TextInput accessibilityHint={errors.startDate?.message} accessibilityLabel="Дата начала курса" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('startDate')} value={field.value} />
+            )} />
+            {errors.startDate?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.startDate.message}</Text> : null}
           </View>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Окончание</Text>
-            <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setEndDate} placeholder="Не ограничено" placeholderTextColor={palette.textMuted} selectionColor={palette.primary} style={inputStyle} value={endDate} />
+            <Controller control={control} name="endDate" render={({ field }) => (
+              <TextInput accessibilityHint={errors.endDate?.message} accessibilityLabel="Дата окончания курса" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Не ограничено" placeholderTextColor={palette.textMuted} selectionColor={palette.primary} style={inputStyle('endDate')} value={field.value} />
+            )} />
+            {errors.endDate?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.endDate.message}</Text> : null}
           </View>
         </View>
 
         <View style={styles.field}>
           <Text style={[styles.label, { color: palette.text }]}>Комментарий</Text>
-          <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setComment} selectionColor={palette.primary} style={inputStyle} value={comment} />
+          <Controller control={control} name="comment" render={({ field }) => (
+            <TextInput accessibilityHint={errors.comment?.message} accessibilityLabel="Комментарий к приёму" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('comment')} value={field.value} />
+          )} />
+          {errors.comment?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.comment.message}</Text> : null}
         </View>
 
         {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
         <ActionButton
-          disabled={isPending || !medicationId || selectedDays.length === 0 || !/^\d{2}:\d{2}$/.test(time)}
+          disabled={isPending}
           label={isPending ? 'Сохраняем…' : 'Сохранить'}
           onPress={() => void handleSave()}
           palette={palette}
         />
       </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
+  modal: { flex: 1 },
   content: { alignSelf: 'center', flexGrow: 1, gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg, justifyContent: 'space-between' },
   headingCopy: { flex: 1, gap: spacing.sm },
   kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   field: { gap: spacing.sm },
+  fieldError: { fontSize: 13, lineHeight: 18 },
   label: { fontSize: 14, fontWeight: '600' },
   input: { borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, fontSize: 16, minHeight: 50, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },

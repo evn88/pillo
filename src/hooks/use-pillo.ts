@@ -48,6 +48,14 @@ export const usePillo = (): PilloContextValue => {
     return {
       retry: () => { void controllerRef.current?.start(); },
       retryNotifications: () => controllerRef.current?.requestSync(true),
+      openNotificationSettings: async () => {
+        try {
+          await notificationGateway.openSettings();
+          return { ok: true };
+        } catch {
+          return { ok: false, kind: 'unavailable', message: 'Не удалось открыть настройки уведомлений устройства.' };
+        }
+      },
       createMedicationId: () => Crypto.randomUUID(),
       saveMedication: (input, commandId) => execute({ type: 'save-medication', input }, commandId),
       deleteMedication: medicationId => execute({ type: 'delete-medication', medicationId }),

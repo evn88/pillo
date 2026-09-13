@@ -1,7 +1,8 @@
 import type { CommandResult } from '../application/contracts';
+import { manualIntakeResolver, type ManualIntakeFormValues } from '../hooks/form-schema';
 import { parseQuantity } from '../domain/validation';
 import { useFormCommand } from '../hooks/use-form-command';
-import { useState } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { Medication } from '@/domain/types';
@@ -19,18 +20,23 @@ type ManualIntakeSheetProps = {
 
 export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, onClose, onSave, visible }: ManualIntakeSheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
-  const [medicationId, setMedicationId] = useState(initialMedicationId ?? medications[0]?.id ?? '');
-  const [dose, setDose] = useState('1');
+  const { control, formState: { errors }, handleSubmit } = useForm<ManualIntakeFormValues>({
+    defaultValues: { medicationId: initialMedicationId ?? medications[0]?.id ?? '', dose: '1' },
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
+    resolver: manualIntakeResolver(new Set(medications.map(medication => medication.id)))
+  });
   const { isPending, error, submit } = useFormCommand();
+  const medicationId = useWatch({ control, name: 'medicationId' });
+  const dose = useWatch({ control, name: 'dose' });
   const selectedMedication = medications.find(medication => medication.id === medicationId);
   const previewDose = Number(dose.trim().replace(',', '.'));
   const hasStockDiscrepancy = selectedMedication && Number.isFinite(previewDose) && previewDose > selectedMedication.stockUnits;
 
-  const handleSave = async () => {
-    if (!medicationId || isPending) return;
-
-    await submit(commandId => onSave(medicationId, parseQuantity(dose, 'Количество', true), commandId), onClose, JSON.stringify([medicationId, dose]));
-  };
+  const handleSave = handleSubmit(async values => {
+    if (isPending) return;
+    await submit(commandId => onSave(values.medicationId, parseQuantity(values.dose, 'Количество', true), commandId), onClose, JSON.stringify(values));
+  });
 
   return (
     <Modal
@@ -51,31 +57,34 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: palette.text }]}>Препарат</Text>
-            <View accessibilityRole="radiogroup" style={styles.options}>
-              {medications.filter(medication => !initialMedicationId || medication.id === initialMedicationId).map(medication => {
-                const selected = medication.id === medicationId;
+            <Controller control={control} name="medicationId" render={({ field }) => (
+              <View accessibilityLabel="Препарат" accessibilityRole="radiogroup" style={styles.options}>
+                {medications.filter(medication => !initialMedicationId || medication.id === initialMedicationId).map(medication => {
+                  const selected = medication.id === field.value;
 
-                return (
-                  <Pressable
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: selected }}
-                    key={medication.id}
-                    onPress={initialMedicationId ? undefined : () => setMedicationId(medication.id)}
-                    style={({ pressed }) => [
-                      styles.option,
-                      {
-                        backgroundColor: selected ? palette.primarySoft : palette.surface,
-                        borderColor: selected ? palette.primary : palette.border
-                      },
-                      pressed && styles.pressed
-                    ]}
-                  >
-                    <Text style={[styles.optionText, { color: selected ? palette.primary : palette.text }]}>{medication.name}</Text>
-                    <Text style={[styles.optionMeta, { color: palette.textMuted }]}>{medication.dosage || medication.form}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+                  return (
+                    <Pressable
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: selected }}
+                      key={medication.id}
+                      onPress={initialMedicationId ? undefined : () => field.onChange(medication.id)}
+                      style={({ pressed }) => [
+                        styles.option,
+                        {
+                          backgroundColor: selected ? palette.primarySoft : palette.surface,
+                          borderColor: selected ? palette.primary : palette.border
+                        },
+                        pressed && styles.pressed
+                      ]}
+                    >
+                      <Text style={[styles.optionText, { color: selected ? palette.primary : palette.text }]}>{medication.name}</Text>
+                      <Text style={[styles.optionMeta, { color: palette.textMuted }]}>{medication.dosage || medication.form}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )} />
+            {errors.medicationId?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.medicationId.message}</Text> : null}
           </View>
 
           {hasStockDiscrepancy ? (
@@ -86,23 +95,28 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: palette.text }]}>Количество</Text>
-            <TextInput
-              accessibilityLabel="Количество препарата"
-              keyboardAppearance={isDark ? 'dark' : 'light'}
-              keyboardType="decimal-pad"
-              onChangeText={setDose}
-              selectionColor={palette.primary}
-              style={[styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]}
-              value={dose}
-            />
+            <Controller control={control} name="dose" render={({ field }) => (
+              <TextInput
+                accessibilityHint={errors.dose?.message}
+                accessibilityLabel="Количество препарата"
+                keyboardAppearance={isDark ? 'dark' : 'light'}
+                keyboardType="decimal-pad"
+                onBlur={field.onBlur}
+                onChangeText={field.onChange}
+                selectionColor={palette.primary}
+                style={[styles.input, { backgroundColor: palette.surface, borderColor: errors.dose ? palette.danger : palette.border, color: palette.text }]}
+                value={field.value}
+              />
+            )} />
             <Text style={[styles.hint, { color: palette.textMuted }]}>Можно указать целое число или дробь: 0,5; 1; 1,5.</Text>
+            {errors.dose?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.dose.message}</Text> : null}
           </View>
 
           {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
           <View style={styles.actions}>
             <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
             <ActionButton
-              disabled={!medicationId || isPending}
+              disabled={isPending}
               label={isPending ? 'Сохраняем…' : 'Отметить вручную'}
               onPress={() => void handleSave()}
               palette={palette}
@@ -122,6 +136,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.6 },
   description: { fontSize: 15, lineHeight: 21 },
   field: { gap: spacing.md },
+  fieldError: { fontSize: 13, lineHeight: 18 },
   label: { fontSize: 16, fontWeight: '700' },
   options: { gap: spacing.sm },
   option: { borderRadius: radii.md, borderWidth: 1, minHeight: 64, padding: spacing.lg },

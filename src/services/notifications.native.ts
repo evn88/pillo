@@ -1,7 +1,8 @@
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 import type { NotificationGateway } from '../application/contracts';
+import { parseNotificationResponse } from '../application/notification-response';
 import { notificationPrefix } from '../application/notification-plan';
 
 const channelId = 'pillo-intakes';
@@ -20,8 +21,29 @@ export const notificationGateway: NotificationGateway = {
     const quiet = permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
     const channel = Platform.OS === 'android' ? await Notifications.getNotificationChannelAsync(channelId) : null;
     const blocked = channel?.importance === Notifications.AndroidImportance.NONE;
-    return { authorization: blocked ? 'denied' : quiet ? 'quiet' : permission.granted ? 'granted' : 'denied',
-      exact: Platform.OS === 'android' ? 'unknown' : 'system' };
+    return {
+      authorization: blocked ? 'denied' : quiet ? 'quiet' : permission.granted ? 'granted' : 'denied',
+      exact: Platform.OS === 'android' ? 'unknown' : 'system',
+      channel: Platform.OS === 'android' ? blocked ? 'blocked' : 'available' : 'unsupported',
+      canAskAgain: permission.canAskAgain,
+      requested: request
+    };
+  },
+  openSettings: () => Linking.openSettings(),
+  getLastResponse: async () => {
+    const response = await Notifications.getLastNotificationResponseAsync();
+    await Notifications.clearLastNotificationResponseAsync();
+
+    return parseNotificationResponse(response?.notification.request.content.data);
+  },
+  subscribeResponses: listener => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const payload = parseNotificationResponse(response.notification.request.content.data);
+
+      if (payload) listener(payload);
+    });
+
+    return () => subscription.remove();
   },
   list: async () => (await Notifications.getAllScheduledNotificationsAsync())
     .filter(item => item.identifier.startsWith(notificationPrefix) ||

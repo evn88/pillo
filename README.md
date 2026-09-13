@@ -4,8 +4,8 @@
 
 ## Платформы
 
-- iOS: iPhone и iPad;
-- Android: телефоны и планшеты.
+- iOS/iPadOS 16.4 и новее: iPhone и iPad;
+- Android 7 (API 24) и новее: телефоны и планшеты.
 
 Интерфейс использует нижнюю навигацию на телефонах и постоянную боковую навигацию с двухколоночной компоновкой на планшетах.
 
@@ -31,8 +31,10 @@ npm run android
 ```bash
 npm run type-check
 npm test
+npm run lint
+npx expo install --check
 ```
 
-Локальные уведомления проверяйте на физическом устройстве. Конфигурация поддерживает Expo Go, но production-поведение разрешений и уведомлений нужно проверять в development build.
+Native debug/release build, требования к устройствам и порядок приёмки описаны в [матрице сборок](openspec/changes/harden-pillo-reliability-and-architecture/evidence/native-build-matrix.md). Локальные уведомления проверяйте на физическом устройстве: Expo Go не доказывает production-поведение разрешений и уведомлений.
 
 Архитектура и текущее состояние работ: [передача следующего этапа](openspec/changes/harden-pillo-reliability-and-architecture/handoff.md).
