@@ -65,6 +65,12 @@ The host had Xcode 26.6 and CocoaPods 1.17.0. The `SDKROOT` override was local t
 
 This evidence proves that the regenerated native dependency graph compiles. It has no signing profile, install, physical device, migration fixture, or release artifact checksum; it therefore does not close device or release acceptance.
 
+## Generated Android backup evidence
+
+On 2026-09-13, `npx expo prebuild --clean --platform android --no-install` generated the ignored Android project from the current app config. Its `android/app/src/main/AndroidManifest.xml` contains `android:allowBackup="false"`; this confirms the selected Android no-backup/no-restore policy is carried into the manifest.
+
+The generated iOS `Info.plist` has no equivalent global backup exclusion. Expo SDK 57 exposes Android `allowBackup` in app config, but does not expose a matching SQLite-file policy for iOS. Apple requires the backup-exclusion resource value to be applied to the actual support file. Pillo has not added that native adapter or verified an iOS transfer/restore, so iOS is deliberately not claimed to be excluded from backup.
+
 ## Not yet evidenced
 
-The iOS project is generated locally and ignored by Git; no Android native project, Android SDK/adb, device, signing credentials, installation, or release artifact was available in this workspace. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
+The iOS and Android projects are generated locally and ignored by Git; no Android SDK/adb, device, signing credentials, installation, or release artifact was available in this workspace. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
