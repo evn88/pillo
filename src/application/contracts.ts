@@ -52,6 +52,7 @@ export type PilloActions = {
   addPackage: (id: string) => Promise<CommandResult>;
   saveScheduleRule: (rule: Omit<ScheduleRule, 'id'> & { id?: string }, commandId?: string) => Promise<CommandResult>;
   deleteScheduleRule: (id: string) => Promise<CommandResult>;
+  takeScheduledIntake: (id: string, dose: number, commandId?: string) => Promise<CommandResult>;
   setIntakeStatus: (id: string, status: IntakeStatus, legacyStockReturnUnits?: number, commandId?: string) => Promise<CommandResult>;
   takeMedicationNow: (id: string, dose: number, commandId?: string) => Promise<CommandResult>;
   updateSettings: (settings: Partial<PilloSettings>) => Promise<CommandResult>;

@@ -5,12 +5,13 @@ import { manualIntakeResolver, type ManualIntakeFormValues } from '../hooks/form
 import { parseQuantity } from '../domain/validation';
 import { useFormCommand } from '../hooks/use-form-command';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { Medication } from '@/domain/types';
 import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { AppSymbol } from './app-symbol';
+import { DoseInput } from './dose-input';
 import { MedicationPickerSheet } from './medication-picker-sheet';
 import { ActionButton } from './ui';
 
@@ -57,7 +58,7 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
       presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'}
       visible={visible}
     >
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: palette.background }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'android' ? 'height' : undefined} style={[styles.container, { backgroundColor: palette.background }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
           <Pressable accessibilityRole="button" accessibilityLabel="Закрыть без сохранения" disabled={isPending} onPress={handleClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
             <Text style={[styles.closeText, { color: palette.textMuted }]}>Закрыть</Text>
@@ -69,7 +70,7 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
               palette={palette}
             />
         </View>
-        <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
+        <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
           <View style={[styles.heading, isLargeText && styles.headingLarge]}>
             <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.title, { color: palette.text }]}>Добавить приём</Text>
@@ -128,23 +129,18 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
           ) : null}
 
           <View style={styles.field}>
-            <Text style={[styles.label, { color: palette.text }]}>Сколько приняли?</Text>
             {selectedMedication ? <Text style={[styles.hint, { color: palette.textMuted }]}>Для препарата: {selectedMedication.name} · {selectedMedication.dosage || selectedMedication.form}</Text> : <Text style={[styles.hint, { color: palette.textMuted }]}>Сначала выберите препарат.</Text>}
             <Controller control={control} name="dose" render={({ field }) => (
-              <TextInput
-                accessibilityHint={errors.dose?.message}
-                accessibilityLabel="Количество препарата"
-                keyboardAppearance={isDark ? 'dark' : 'light'}
-                keyboardType="decimal-pad"
+              <DoseInput
+                disabled={isPending}
+                error={errors.dose?.message}
+                isDark={isDark}
+                label="Сколько приняли?"
                 onBlur={field.onBlur}
-                onChangeText={field.onChange}
-                selectionColor={palette.primary}
-                style={[styles.input, { backgroundColor: palette.surface, borderColor: errors.dose ? palette.danger : palette.border, color: palette.text }]}
+                onChange={field.onChange}
                 value={field.value}
               />
             )} />
-            <Text style={[styles.hint, { color: palette.textMuted }]}>Можно указать целое число или дробь: 0,5; 1; 1,5.</Text>
-            {errors.dose?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.dose.message}</Text> : null}
           </View>
 
           {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
@@ -176,7 +172,6 @@ const styles = StyleSheet.create({
   medicationName: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
   medicationMeta: { fontSize: 13, lineHeight: 18 },
   changeLabel: { fontSize: 15, fontWeight: '700' },
-  input: { borderRadius: radii.md, borderWidth: 1, fontSize: 18, minHeight: 56, paddingHorizontal: spacing.lg },
   hint: { fontSize: 13, lineHeight: 19 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'flex-end' },
   pressed: { opacity: 0.7 },

@@ -1,14 +1,19 @@
 import { ScheduleDateInput } from './schedule-date-input';
+import { useState } from 'react';
+import { router } from 'expo-router';
 import type { CommandResult } from '../application/contracts';
 import { scheduleFormResolver, toScheduleRule, type ScheduleFormValues } from '../hooks/form-schema';
 import { useFormCommand } from '../hooks/use-form-command';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Medication, ScheduleRule } from '@/domain/types';
 import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
+import { AppSymbol } from './app-symbol';
+import { DoseInput } from './dose-input';
+import { MedicationPickerSheet } from './medication-picker-sheet';
 import { ActionButton } from './ui';
 
 const days = [
@@ -34,6 +39,7 @@ type ScheduleFormProps = {
 export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId, visible }: ScheduleFormProps) => {
   const palette = isDark ? colors.dark : colors.light;
   const isLargeText = useLargeTextLayout();
+  const [isMedicationPickerOpen, setMedicationPickerOpen] = useState(false);
   const { isPending, error, submit } = useFormCommand();
   const ruleId = rule?.id ?? newId;
   const { control, formState: { errors }, handleSubmit } = useForm<ScheduleFormValues>({
@@ -55,18 +61,25 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
     borderColor: errors[field] ? palette.danger : palette.border,
     color: palette.text
   }];
+  const medicationId = useWatch({ control, name: 'medicationId' });
+  const selectedMedication = medications.find(medication => medication.id === medicationId);
+
+  const handleClose = () => {
+    setMedicationPickerOpen(false);
+    onClose();
+  };
 
   const handleSave = handleSubmit(async values => {
     await submit(commandId => onSave({
       ...toScheduleRule(values, ruleId, rule?.isActive ?? true)
-    }, commandId), onClose, JSON.stringify(values));
+    }, commandId), handleClose, JSON.stringify(values));
   });
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modal, { backgroundColor: palette.background }]}>
+    <Modal animationType="slide" onRequestClose={handleClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'android' ? 'height' : undefined} style={[styles.modal, { backgroundColor: palette.background }]}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-        <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
+        <ActionButton label="Отмена" onPress={handleClose} palette={palette} tone="secondary" />
         <ActionButton
           disabled={isPending}
           label={isPending ? 'Сохраняем…' : 'Сохранить'}
@@ -74,7 +87,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
           palette={palette}
         />
       </View>
-      <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
+      <ScrollView automaticallyAdjustKeyboardInsets contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
         <View style={[styles.heading, isLargeText && styles.headingLarge]}>
           <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
             <Text style={[styles.title, { color: palette.text }]}>{rule ? 'Изменить приём' : 'Добавить приём'}</Text>
@@ -84,24 +97,31 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
         <View style={styles.field}>
           <Text style={[styles.label, { color: palette.text }]}>Препарат</Text>
           <Controller control={control} name="medicationId" render={({ field }) => (
-            <View accessibilityLabel="Препарат" accessibilityRole="radiogroup" style={styles.options}>
-              {medications.map(medication => (
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: medication.id === field.value }}
-                  android_ripple={{ color: palette.primarySoft }}
-                  key={medication.id}
-                  onPress={() => field.onChange(medication.id)}
-                  style={[
-                    styles.option,
-                    { backgroundColor: palette.surfaceMuted },
-                    medication.id === field.value && { backgroundColor: palette.primarySoft }
-                  ]}
-                >
-                  <Text style={{ color: palette.text, fontWeight: '600' }}>{medication.name}</Text>
-                </Pressable>
-              ))}
-            </View>
+            <>
+              <Pressable
+                accessibilityLabel={selectedMedication ? `Выбран препарат ${selectedMedication.name}. Изменить` : 'Выбрать препарат'}
+                accessibilityRole="button"
+                disabled={isPending}
+                onPress={() => setMedicationPickerOpen(true)}
+                style={({ pressed }) => [styles.medicationField, { backgroundColor: palette.surface, borderColor: errors.medicationId ? palette.danger : palette.border }, pressed && styles.pressed]}
+              >
+                <View style={[styles.medicationIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol color={palette.primary} fallback="Rx" name="pill.fill" /></View>
+                <View style={styles.medicationCopy}>
+                  <Text numberOfLines={2} style={[styles.medicationName, { color: selectedMedication ? palette.text : palette.textMuted }]}>{selectedMedication?.name ?? 'Выбрать препарат'}</Text>
+                  {selectedMedication ? <Text numberOfLines={1} style={[styles.medicationMeta, { color: palette.textMuted }]}>{[selectedMedication.dosage, selectedMedication.form].filter(Boolean).join(' · ')}</Text> : null}
+                </View>
+                <Text style={[styles.changeLabel, { color: palette.primary }]}>Изменить</Text>
+              </Pressable>
+              <MedicationPickerSheet
+                isDark={isDark}
+                medications={medications}
+                onClose={() => setMedicationPickerOpen(false)}
+                onOpenMedications={() => { setMedicationPickerOpen(false); handleClose(); router.navigate('/medications'); }}
+                onSelect={field.onChange}
+                selectedId={field.value}
+                visible={visible && isMedicationPickerOpen}
+              />
+            </>
           )} />
           {errors.medicationId?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.medicationId.message}</Text> : null}
         </View>
@@ -115,11 +135,17 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
             {errors.time?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.time.message}</Text> : null}
           </View>
           <View style={[styles.field, styles.half]}>
-            <Text style={[styles.label, { color: palette.text }]}>Количество</Text>
             <Controller control={control} name="doseUnits" render={({ field }) => (
-              <TextInput accessibilityHint={errors.doseUnits?.message} accessibilityLabel="Количество препарата" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="decimal-pad" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('doseUnits')} value={field.value} />
+              <DoseInput
+                disabled={isPending}
+                error={errors.doseUnits?.message}
+                isDark={isDark}
+                label="Доза за приём"
+                onBlur={field.onBlur}
+                onChange={field.onChange}
+                value={field.value}
+              />
             )} />
-            {errors.doseUnits?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.doseUnits.message}</Text> : null}
           </View>
         </View>
 
@@ -195,8 +221,13 @@ const styles = StyleSheet.create({
   input: { borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, fontSize: 16, minHeight: 50, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   half: { flexBasis: 220, flexGrow: 1 },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  option: { borderRadius: radii.pill, minHeight: 44, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  medicationField: { alignItems: 'center', borderRadius: radii.md, borderWidth: 1, flexDirection: 'row', gap: spacing.md, minHeight: 72, padding: spacing.md },
+  medicationIcon: { alignItems: 'center', borderRadius: radii.md, height: 44, justifyContent: 'center', width: 44 },
+  medicationCopy: { flex: 1, gap: spacing.xs },
+  medicationName: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
+  medicationMeta: { fontSize: 13, lineHeight: 18 },
+  changeLabel: { fontSize: 15, fontWeight: '700' },
+  pressed: { opacity: 0.7 },
   days: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   day: { alignItems: 'center', borderRadius: radii.pill, justifyContent: 'center', minHeight: 44, minWidth: 44, padding: spacing.sm }
 });

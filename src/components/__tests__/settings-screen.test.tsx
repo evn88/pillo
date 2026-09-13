@@ -38,6 +38,7 @@ const createContext = (overrides: Partial<PilloContextValue> = {}): PilloContext
   saveScheduleRule: vi.fn(),
   deleteScheduleRule: vi.fn(),
   setIntakeStatus: vi.fn(),
+  takeScheduledIntake: vi.fn(),
   takeMedicationNow: vi.fn(),
   updateSettings: vi.fn(),
   clearData: vi.fn(),

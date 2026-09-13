@@ -43,7 +43,7 @@ const transitionIntake = (
     intakes: intake.source === 'MANUAL' && !taking
       ? next.intakes.filter(item => item.id !== intake.id)
       : next.intakes.map(item => item.id !== intake.id ? item : {
-          ...item, status, stockEffectUnits: effect / 1000,
+          ...item, doseUnits: intake.doseUnits, status, stockEffectUnits: effect / 1000,
           contextSource: intake.status === 'PENDING' ? 'RECORDED' : intake.contextSource,
           takenAt: taking ? now.toISOString() : null,
           recordedAt: status === 'PENDING' ? null : now.toISOString(),
@@ -82,6 +82,16 @@ export const applyCommand = (snapshot: PilloSnapshot, command: PilloCommand, now
     }
     case 'delete-rule':
       return { ...snapshot, scheduleRules: snapshot.scheduleRules.filter(item => item.id !== command.ruleId) };
+    case 'take-intake': {
+      const intake = snapshot.intakes.find(item => item.id === command.intakeId);
+      if (!intake) throw new DomainError('Приём не найден.');
+      const doseUnits = toMilliunits(command.doseUnits, 'Доза', true) / 1000;
+      if (intake.status === 'TAKEN') {
+        if (intake.doseUnits === doseUnits) return snapshot;
+        throw new DomainError('Приём уже отмечен. Сначала отмените отметку.');
+      }
+      return transitionIntake(snapshot, { ...intake, doseUnits }, 'TAKEN', now);
+    }
     case 'set-intake-status': {
       if (!['PENDING', 'TAKEN', 'SKIPPED'].includes(command.status)) throw new DomainError('Неизвестный статус.');
       const intake = snapshot.intakes.find(item => item.id === command.intakeId);

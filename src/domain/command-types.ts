@@ -6,6 +6,7 @@ export type PilloCommand =
   | { type: 'add-package'; medicationId: string }
   | { type: 'save-rule'; rule: ScheduleRule }
   | { type: 'delete-rule'; ruleId: string }
+  | { type: 'take-intake'; intakeId: string; doseUnits: number }
   | { type: 'set-intake-status'; intakeId: string; status: IntakeStatus; legacyStockReturnUnits?: number }
   | { type: 'record-manual'; intakeId: string; medicationId: string; doseUnits: number }
   | { type: 'update-settings'; settings: Partial<PilloSettings> }

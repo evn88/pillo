@@ -28,7 +28,7 @@ const createContext = (): PilloContextValue => ({
   notificationStatus: 'ready', notificationError: null, notificationAccess: null, coverageEndsAt: null,
   retry: vi.fn(), retryNotifications: vi.fn(), openNotificationSettings: vi.fn(), createMedicationId: vi.fn(() => 'new'),
   saveMedication: vi.fn(), deleteMedication: vi.fn(), addPackage: vi.fn().mockResolvedValue({ ok: true }), saveScheduleRule: vi.fn(),
-  deleteScheduleRule: vi.fn(), setIntakeStatus: vi.fn(), takeMedicationNow: vi.fn(), updateSettings: vi.fn(), clearData: vi.fn()
+  deleteScheduleRule: vi.fn(), takeScheduledIntake: vi.fn(), setIntakeStatus: vi.fn(), takeMedicationNow: vi.fn(), updateSettings: vi.fn(), clearData: vi.fn()
 });
 
 describe('Список препаратов', () => {

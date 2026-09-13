@@ -11,7 +11,7 @@ import { usePilloContext } from '@/providers/pillo-provider';
 import { radii, spacing } from '@/theme/tokens';
 import { usePilloTheme } from '@/theme/use-pillo-theme';
 
-const formatDose = (value: number): string => `${value} ед.`;
+const formatDose = (value: number): string => `${String(value).replace('.', ',')} ед.`;
 
 export const ScheduleScreen = ({ isLargeText }: { isLargeText: boolean }) => {
   const { createMedicationId, deleteScheduleRule, saveScheduleRule, snapshot } = usePilloContext();

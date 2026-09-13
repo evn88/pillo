@@ -48,6 +48,19 @@ describe('учёт остатков', () => {
     const taken = applyCommand(initial(), { type: 'set-intake-status', intakeId: 'r1:2026-09-13', status: 'TAKEN' }, now);
     expect(applyCommand(taken, { type: 'set-intake-status', intakeId: 'r1:2026-09-13', status: 'TAKEN' }, new Date(2026, 8, 13, 10))).toBe(taken);
   });
+  it.each([0.25, 0.5])('атомарно сохраняет фактическую дозу %s планового приёма', doseUnits => {
+    const taken = applyCommand(initial(), { type: 'take-intake', intakeId: 'r1:2026-09-13', doseUnits }, now);
+
+    expect(taken.intakes[0]).toMatchObject({ doseUnits, status: 'TAKEN', stockEffectUnits: doseUnits });
+    expect(taken.medications[0]?.stockUnits).toBe(0.5 - doseUnits);
+    expect(taken.scheduleRules[0]?.doseUnits).toBe(1);
+  });
+  it('не меняет уже отмеченный приём через повторную команду дозы', () => {
+    const taken = applyCommand(initial(), { type: 'take-intake', intakeId: 'r1:2026-09-13', doseUnits: 0.5 }, now);
+
+    expect(applyCommand(taken, { type: 'take-intake', intakeId: 'r1:2026-09-13', doseUnits: 0.5 }, now)).toBe(taken);
+    expect(() => applyCommand(taken, { type: 'take-intake', intakeId: 'r1:2026-09-13', doseUnits: 0.25 }, now)).toThrow('уже отмечен');
+  });
   it('не выдумывает legacy-списание и принимает явное исправление', () => {
     const taken = applyCommand(initial(), { type: 'set-intake-status', intakeId: 'r1:2026-09-13', status: 'TAKEN' }, now);
     const legacy = migrateLegacyPayload(JSON.stringify(taken)).snapshot;

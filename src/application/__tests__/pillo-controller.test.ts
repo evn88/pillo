@@ -158,8 +158,9 @@ describe('восстановимая проекция уведомлений', (
     const { controller, gateway, jobs } = fixture();
     await controller.start(); await controller.whenIdle();
     expect(jobs.size).toBe(36);
-    await controller.execute('take', { type: 'set-intake-status', intakeId: 'r1:2026-09-13', status: 'TAKEN' });
+    await controller.execute('take', { type: 'take-intake', intakeId: 'r1:2026-09-13', doseUnits: 0.5 });
     await controller.whenIdle(); expect(jobs.size).toBe(35);
+    expect(controller.getState().snapshot.intakes[0]).toMatchObject({ doseUnits: 0.5, status: 'TAKEN' });
     await controller.execute('undo', { type: 'set-intake-status', intakeId: 'r1:2026-09-13', status: 'PENDING' });
     await controller.whenIdle(); expect(jobs.size).toBe(36);
     vi.mocked(gateway.list).mockClear();

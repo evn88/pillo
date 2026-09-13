@@ -62,6 +62,7 @@ export const usePillo = (): PilloContextValue => {
       addPackage: medicationId => execute({ type: 'add-package', medicationId }),
       saveScheduleRule: (rule, commandId) => execute({ type: 'save-rule', rule: { ...rule, id: rule.id ?? Crypto.randomUUID() } }, commandId),
       deleteScheduleRule: ruleId => execute({ type: 'delete-rule', ruleId }),
+      takeScheduledIntake: (intakeId, doseUnits, commandId) => execute({ type: 'take-intake', intakeId, doseUnits }, commandId),
       setIntakeStatus: (intakeId, status, legacyStockReturnUnits, commandId) => execute({ type: 'set-intake-status', intakeId, status, legacyStockReturnUnits }, commandId),
       takeMedicationNow: (medicationId, doseUnits, commandId = Crypto.randomUUID()) => execute({ type: 'record-manual', medicationId, doseUnits, intakeId: `manual:${commandId}` }, commandId),
       updateSettings: async settings => {

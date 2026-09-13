@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { HistorySheet } from '@/components/history-sheet';
 import { LegacyStockReturnSheet } from '@/components/legacy-stock-return-sheet';
 import { ManualIntakeSheet } from '@/components/manual-intake-sheet';
+import { ScheduledIntakeSheet } from '@/components/scheduled-intake-sheet';
 import { ActionButton, Surface } from '@/components/ui';
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Intake, Medication } from '@/domain/types';
@@ -14,13 +15,14 @@ import { usePilloContext } from '@/providers/pillo-provider';
 import { radii, spacing } from '@/theme/tokens';
 import { usePilloTheme } from '@/theme/use-pillo-theme';
 
-const formatDose = (value: number): string => `${value} ед.`;
+const formatDose = (value: number): string => `${String(value).replace('.', ',')} ед.`;
 
 export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?: string; isLargeText: boolean }) => {
-  const { calendarCoverage, setIntakeStatus, snapshot, takeMedicationNow } = usePilloContext();
+  const { calendarCoverage, setIntakeStatus, snapshot, takeMedicationNow, takeScheduledIntake } = usePilloContext();
   const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [isManualIntakeOpen, setManualIntakeOpen] = useState(false);
+  const [doseIntake, setDoseIntake] = useState<Intake | null>(null);
   const [legacyUndoIntake, setLegacyUndoIntake] = useState<Intake | null>(null);
   const todayKey = getLocalDateKey(new Date());
   const medicationById = new Map(snapshot.medications.map(medication => [medication.id, medication]));
@@ -52,7 +54,28 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
                 return <Surface key={intake.id} palette={palette} style={isFocused ? { borderColor: palette.primary, borderWidth: 2 } : isLowStock ? { borderColor: palette.warning } : undefined}>
                   <View style={[styles.cardHeader, isLargeText && styles.cardHeaderLarge]}><View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} /></View><View style={[styles.cardHeaderCopy, isLargeText && styles.cardHeaderCopyLarge]}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication?.name ?? 'Удалённый препарат'}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{intake.localTime} · {formatDose(intake.doseUnits)}{medication?.dosage ? ` · ${medication.dosage}` : ''}</Text></View><View style={[styles.statusBadge, { backgroundColor: intake.status === 'TAKEN' ? palette.successSoft : intake.status === 'SKIPPED' ? palette.dangerSoft : palette.primarySoft }]}><Text style={[styles.statusText, { color: intake.status === 'TAKEN' ? palette.success : intake.status === 'SKIPPED' ? palette.danger : palette.primary }]}>{intake.status === 'TAKEN' ? 'ПРИНЯТО' : intake.status === 'SKIPPED' ? 'ПРОПУЩЕНО' : 'ОЖИДАЕТ'}</Text></View></View>
                   {isLowStock || hasStockDiscrepancy ? <View style={[styles.stockWarning, { backgroundColor: palette.warningSoft }]}><Text accessibilityRole={hasStockDiscrepancy ? 'alert' : undefined} style={[styles.stockWarningText, { color: palette.warning }]}>{hasStockDiscrepancy ? `Учётный запас меньше дозы: ${medication?.stockUnits ?? 0} из ${intake.doseUnits} ед. При отметке остаток станет 0 — проверьте фактический запас.` : `Запас подходит к концу · осталось ${medication?.stockUnits ?? 0} ед.`}</Text></View> : null}
-                  <View style={styles.cardActions}>{intake.status === 'PENDING' ? <><ActionButton label="Принял" onPress={() => changeStatus(intake, 'TAKEN')} palette={palette} /><ActionButton label="Пропустить" onPress={() => changeStatus(intake, 'SKIPPED')} palette={palette} tone="secondary" /></> : <ActionButton label="Отменить отметку" onPress={() => changeStatus(intake, 'PENDING')} palette={palette} tone="secondary" />}</View>
+                  <View style={styles.cardActions}>{intake.status === 'PENDING' ? <>
+                    <View style={styles.takeActions}>
+                      <ActionButton
+                        accessibilityText={`Принять ${medication?.name ?? 'препарат'} в дозе ${formatDose(intake.doseUnits)}`}
+                        fill
+                        label={`Принял · ${formatDose(intake.doseUnits)}`}
+                        onPress={() => void takeScheduledIntake(intake.id, intake.doseUnits)}
+                        palette={palette}
+                        systemImage="checkmark.circle.fill"
+                      />
+                      <ActionButton
+                        accessibilityText={`Изменить дозу приёма ${medication?.name ?? 'препарата'}`}
+                        compact
+                        label="Доза"
+                        onPress={() => setDoseIntake(intake)}
+                        palette={palette}
+                        systemImage="slider.horizontal.3"
+                        tone="secondary"
+                      />
+                    </View>
+                    <View style={styles.skipAction}><ActionButton fill label="Пропустить" onPress={() => changeStatus(intake, 'SKIPPED')} palette={palette} tone="secondary" /></View>
+                  </> : <ActionButton label="Отменить отметку" onPress={() => changeStatus(intake, 'PENDING')} palette={palette} tone="secondary" />}</View>
                 </Surface>;
               })}</View>
             )}
@@ -63,6 +86,14 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
       <ScreenActions route="/" actions={[{ label: 'Вне расписания', onPress: () => setManualIntakeOpen(true), disabled: snapshot.medications.length === 0 }, { label: 'История', onPress: () => setHistoryOpen(true) }]} />
       </ScrollView>
       <ManualIntakeSheet isDark={isDark} key={isManualIntakeOpen ? 'manual-open:select' : 'manual-closed'} medications={snapshot.medications} onClose={() => setManualIntakeOpen(false)} onSave={takeMedicationNow} visible={isManualIntakeOpen} />
+      {doseIntake && medicationById.get(doseIntake.medicationId) ? <ScheduledIntakeSheet
+        intake={doseIntake}
+        isDark={isDark}
+        key={doseIntake.id}
+        medication={medicationById.get(doseIntake.medicationId)!}
+        onClose={() => setDoseIntake(null)}
+        onSave={takeScheduledIntake}
+      /> : null}
       {isHistoryOpen ? <HistorySheet calendarCoverage={calendarCoverage} intakes={snapshot.intakes} isDark={isDark} medications={snapshot.medications} onClose={() => setHistoryOpen(false)} visible /> : null}
       {legacyUndoIntake ? <LegacyStockReturnSheet intake={legacyUndoIntake} isDark={isDark} medication={medicationById.get(legacyUndoIntake.medicationId)} onClose={() => setLegacyUndoIntake(null)} onConfirm={(quantity, commandId) => setIntakeStatus(legacyUndoIntake.id, 'PENDING', quantity, commandId)} /> : null}
     </View>
@@ -74,5 +105,5 @@ const LowStockCard = ({ medication, palette }: { medication: Medication; palette
 };
 
 const styles = StyleSheet.create({
-  screenRoot: { flex: 1 }, screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' }, inlineFooter: { marginTop: spacing.md }, eyebrow: { fontSize: 30, fontWeight: '700', letterSpacing: -0.6, marginHorizontal: spacing.sm }, singleColumn: { gap: spacing.lg }, primaryColumn: { gap: spacing.lg }, secondaryColumn: { gap: spacing.md }, columnTitle: { fontSize: 16, fontWeight: '700' }, list: { gap: spacing.md }, emptySurface: { alignItems: 'center', paddingVertical: spacing.xxl }, emptyIcon: { fontSize: 28, marginBottom: spacing.md }, emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.sm }, emptyText: { fontSize: 14, lineHeight: 20 }, inlineAction: { alignSelf: 'flex-start', marginTop: spacing.lg }, cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md }, cardHeaderLarge: { flexDirection: 'column' }, medicationGlyph: { alignItems: 'center', borderRadius: radii.md, height: 52, justifyContent: 'center', width: 52 }, medicationGlyphText: { fontSize: 22, fontWeight: '700' }, cardHeaderCopy: { flex: 1 }, cardHeaderCopyLarge: { flex: undefined, width: '100%' }, cardTitle: { fontSize: 17, fontWeight: '700' }, cardMeta: { fontSize: 13, lineHeight: 19, marginTop: spacing.xs }, statusBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }, statusText: { fontSize: 12, fontWeight: '700' }, stockWarning: { borderRadius: radii.md, marginTop: spacing.lg, padding: spacing.lg }, stockWarningText: { fontSize: 14, fontWeight: '700', lineHeight: 20 }, cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg }, floatingActions: { alignItems: 'center', flexDirection: 'row', gap: spacing.md }, floatingPrimary: { flex: 1, minHeight: 60 }
+  screenRoot: { flex: 1 }, screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' }, inlineFooter: { marginTop: spacing.md }, eyebrow: { fontSize: 30, fontWeight: '700', letterSpacing: -0.6, marginHorizontal: spacing.sm }, singleColumn: { gap: spacing.lg }, primaryColumn: { gap: spacing.lg }, secondaryColumn: { gap: spacing.md }, columnTitle: { fontSize: 16, fontWeight: '700' }, list: { gap: spacing.md }, emptySurface: { alignItems: 'center', paddingVertical: spacing.xxl }, emptyIcon: { fontSize: 28, marginBottom: spacing.md }, emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.sm }, emptyText: { fontSize: 14, lineHeight: 20 }, inlineAction: { alignSelf: 'flex-start', marginTop: spacing.lg }, cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md }, cardHeaderLarge: { flexDirection: 'column' }, medicationGlyph: { alignItems: 'center', borderRadius: radii.md, height: 52, justifyContent: 'center', width: 52 }, medicationGlyphText: { fontSize: 22, fontWeight: '700' }, cardHeaderCopy: { flex: 1 }, cardHeaderCopyLarge: { flex: undefined, width: '100%' }, cardTitle: { fontSize: 17, fontWeight: '700' }, cardMeta: { fontSize: 13, lineHeight: 19, marginTop: spacing.xs }, statusBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }, statusText: { fontSize: 12, fontWeight: '700' }, stockWarning: { borderRadius: radii.md, marginTop: spacing.lg, padding: spacing.lg }, stockWarningText: { fontSize: 14, fontWeight: '700', lineHeight: 20 }, cardActions: { gap: spacing.sm, marginTop: spacing.lg }, takeActions: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm }, skipAction: { alignSelf: 'flex-start' }, floatingActions: { alignItems: 'center', flexDirection: 'row', gap: spacing.md }, floatingPrimary: { flex: 1, minHeight: 60 }
 });
