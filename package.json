@@ -22,6 +22,7 @@
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "react-test-renderer": "^19.2.3",
+    "sf-symbols-typescript": "^2.2.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.11"
   },
