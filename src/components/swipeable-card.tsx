@@ -9,6 +9,7 @@ import {
   type StyleProp,
   type ViewStyle
 } from 'react-native';
+import { AppSymbol } from './app-symbol';
 
 const actionWidth = 92;
 const fullSwipeThreshold = 148;
@@ -82,13 +83,14 @@ export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColo
     <View style={[styles.container, style]}>
       <Pressable
         accessible={false}
+        accessibilityElementsHidden
         accessibilityLabel="Удалить"
         accessibilityRole="button"
         importantForAccessibility="no-hide-descendants"
         onPress={deleteCard}
         style={[styles.deleteAction, { backgroundColor: deleteColor }]}
       >
-        <Text style={styles.deleteIcon}>⌫</Text>
+        <AppSymbol color="#FFFFFF" fallback="Удалить" name="trash.fill" />
         <Text style={styles.deleteLabel}>Удалить</Text>
       </Pressable>
       <Animated.View style={{ transform: [{ translateX }] }} {...panResponder?.panHandlers}>
@@ -120,6 +122,5 @@ const styles = StyleSheet.create({
     top: 0,
     width: actionWidth
   },
-  deleteIcon: { color: '#FFFFFF', fontSize: 22, fontWeight: '700' },
   deleteLabel: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' }
 });

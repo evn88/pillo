@@ -4,6 +4,8 @@ import { expect, it, vi } from 'vitest';
 
 import { SwipeableCard } from '../swipeable-card';
 
+vi.mock('../app-symbol', () => ({ AppSymbol: () => null }));
+
 it('даёт карточке доступное имя и удаляет через accessibility action', async () => {
   const onDelete = vi.fn();
   const onPress = vi.fn();

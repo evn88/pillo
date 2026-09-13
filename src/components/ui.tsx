@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { SFSymbol } from 'sf-symbols-typescript';
 
 import { NativeActionButton } from '@/components/native-action-button';
 import { colors, radii, spacing } from '@/theme/tokens';
@@ -17,27 +18,36 @@ type Palette = {
 };
 
 export const ActionButton = ({
+  accessibilityText,
+  compact,
   disabled,
   fill,
   label,
   onPress,
   palette,
+  systemImage,
   tone = 'primary'
 }: {
+  accessibilityText?: string;
+  compact?: boolean;
   disabled?: boolean;
   fill?: boolean;
   label: string;
   onPress: () => void;
   palette: Palette;
+  systemImage?: SFSymbol;
   tone?: 'primary' | 'secondary' | 'danger';
 }) => {
   return (
     <NativeActionButton
+      accessibilityText={accessibilityText}
+      compact={compact}
       disabled={disabled}
       fill={fill}
       isDark={palette === colors.dark}
       label={label}
       onPress={onPress}
+      systemImage={systemImage}
       tintColor={tone === 'danger' ? palette.danger : palette.primary}
       tone={tone}
     />

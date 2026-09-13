@@ -15,6 +15,8 @@ import {
 import type { SFSymbol } from 'sf-symbols-typescript';
 
 type NativeActionButtonProps = {
+  accessibilityText?: string;
+  compact?: boolean;
   disabled?: boolean;
   fill?: boolean;
   fullWidth?: boolean;
@@ -27,6 +29,8 @@ type NativeActionButtonProps = {
 };
 
 export const NativeActionButton = ({
+  accessibilityText,
+  compact = false,
   disabled = false,
   fill = false,
   fullWidth = false,
@@ -54,10 +58,11 @@ export const NativeActionButton = ({
           modifiers={[
             buttonStyle(tone === 'primary' ? (Number(Platform.Version) >= 26 ? 'glassProminent' : 'borderedProminent') : tone === 'secondary' ? 'bordered' : 'borderless'),
             buttonBorderShape('capsule'),
-            controlSize('large'),
+            controlSize(compact ? 'regular' : 'large'),
             disabledModifier(disabled),
             buttonFrame,
             tint(tintColor),
+            accessibilityLabel(accessibilityText ?? label),
             ...(tone === 'primary' ? [foregroundStyle(disabled ? (isDark ? '#FFFFFF' : '#343434') : isDark ? '#343434' : '#FFFFFF')] : [])
           ]}
         />
@@ -70,6 +75,7 @@ export const NativeActionButton = ({
       <UniversalButton
         disabled={disabled}
         label={systemImage === 'plus' ? `＋  ${label}` : label}
+        modifiers={[accessibilityLabel(accessibilityText ?? label)]}
         onPress={onPress}
         variant={tone === 'primary' ? 'filled' : 'outlined'}
         style={{ ...styles.universalButton, ...(fullWidth ? styles.fullWidthButton : {}) }}

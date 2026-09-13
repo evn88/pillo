@@ -1,6 +1,6 @@
 import { PilloShell } from '@/components/pillo-shell';
 import { MedicationsScreen } from '@/screens/medications-screen';
 
-const MedicationsRoute = () => <PilloShell>{({ isLargeText }) => <MedicationsScreen isLargeText={isLargeText} />}</PilloShell>;
+const MedicationsRoute = () => <PilloShell>{({ isLargeText, isTablet }) => <MedicationsScreen isLargeText={isLargeText} isTablet={isTablet} />}</PilloShell>;
 
 export default MedicationsRoute;
