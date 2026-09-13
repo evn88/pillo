@@ -1,7 +1,9 @@
-import { getLocalDateKey } from '../domain/schedule';
+import { useMemo, useState } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { CalendarCoverage, Intake, Medication } from '@/domain/types';
+import { selectHistoryPage } from '@/domain/history-pagination';
+import { getLocalDateKey } from '@/domain/schedule';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton, Surface } from './ui';
 
@@ -26,19 +28,18 @@ const formatDate = (dateKey: string): string => {
 
 export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, onClose, visible }: HistorySheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const [page, setPage] = useState(0);
   const medicationById = new Map(medications.map(medication => [medication.id, medication]));
-  const history = [...intakes]
-    .filter(intake => intake.localDate <= getLocalDateKey(new Date()))
-    .sort((first, second) => {
-      const firstKey = `${first.localDate}-${first.localTime}`;
-      const secondKey = `${second.localDate}-${second.localTime}`;
-      return secondKey.localeCompare(firstKey);
-    });
-  const groupedHistory = history.reduce<Map<string, Intake[]>>((groups, intake) => {
-    const entries = groups.get(intake.localDate) ?? [];
-    groups.set(intake.localDate, [...entries, intake]);
+  const history = useMemo(
+    () => selectHistoryPage(intakes, getLocalDateKey(new Date()), page),
+    [intakes, page]
+  );
+  const groupedHistory = useMemo(() => history.entries.reduce<Map<string, Intake[]>>((groups, intake) => {
+    const entries = groups.get(intake.localDate);
+    if (entries) entries.push(intake);
+    else groups.set(intake.localDate, [intake]);
     return groups;
-  }, new Map());
+  }, new Map()), [history.entries]);
 
   return (
     <Modal
@@ -60,7 +61,7 @@ export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, o
 
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={{ color: palette.textMuted }}>Покрытие плана: {calendarCoverage.map(item => `${item.from} — ${item.through}`).join('; ') || 'неизвестно'}.</Text>
-          {history.length === 0 ? (
+          {history.total === 0 ? (
             <Surface palette={palette}>
               <Text style={[styles.emptyTitle, { color: palette.text }]}>История пока пуста</Text>
               <Text style={[styles.description, { color: palette.textMuted }]}>
@@ -106,6 +107,9 @@ export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, o
               </View>
             ))
           )}
+          {history.hasMore ? (
+            <ActionButton label="Показать ещё" onPress={() => setPage(current => current + 1)} palette={palette} tone="secondary" />
+          ) : null}
         </ScrollView>
       </View>
     </Modal>

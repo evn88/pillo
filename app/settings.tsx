@@ -1,5 +1,6 @@
-import { PilloApplication } from '../App';
+import { PilloShell } from '@/components/pillo-shell';
+import { SettingsScreen } from '@/screens/settings-screen';
 
-const SettingsRoute = () => <PilloApplication activeTab="settings" />;
+const SettingsRoute = () => <PilloShell>{() => <SettingsScreen />}</PilloShell>;
 
 export default SettingsRoute;

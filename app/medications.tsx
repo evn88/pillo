@@ -1,5 +1,6 @@
-import { PilloApplication } from '../App';
+import { PilloShell } from '@/components/pillo-shell';
+import { MedicationsScreen } from '@/screens/medications-screen';
 
-const MedicationsRoute = () => <PilloApplication activeTab="medications" />;
+const MedicationsRoute = () => <PilloShell>{() => <MedicationsScreen />}</PilloShell>;
 
 export default MedicationsRoute;

@@ -11,7 +11,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  useColorScheme,
   useWindowDimensions,
   View
 } from 'react-native';
@@ -31,6 +30,7 @@ import { getLocalDateKey } from '@/domain/schedule';
 import type { Intake, Medication, PilloSettings, ScheduleRule } from '@/domain/types';
 import { usePilloContext } from '@/providers/pillo-provider';
 import { colors, radii, spacing } from '@/theme/tokens';
+import { usePilloTheme } from '@/theme/use-pillo-theme';
 
 export type PilloTab = 'today' | 'medications' | 'schedule' | 'settings';
 
@@ -39,7 +39,6 @@ const appIcon = require('./assets/icon-pillo.png') as number;
 const formatDose = (value: number): string => `${value} ед.`;
 
 export const PilloApplication = ({ activeTab, focusedIntakeId }: { activeTab: PilloTab; focusedIntakeId?: string }) => {
-  const colorScheme = useColorScheme();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
   const {
@@ -76,9 +75,7 @@ export const PilloApplication = ({ activeTab, focusedIntakeId }: { activeTab: Pi
   const [isManualIntakeOpen, setManualIntakeOpen] = useState(false);
   const [quickIntakeMedication, setQuickIntakeMedication] = useState<Medication | null>(null);
 
-  const theme = snapshot.settings.theme;
-  const isDark = theme === 'DARK' || (theme === 'SYSTEM' && colorScheme === 'dark');
-  const palette = isDark ? colors.dark : colors.light;
+  const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
 
   if (status === 'checking') {
     return (
@@ -280,7 +277,7 @@ export const PilloApplication = ({ activeTab, focusedIntakeId }: { activeTab: Pi
   );
 };
 
-type Palette = typeof colors.light | typeof colors.dark;
+type Palette = import('@/theme/use-pillo-theme').PilloPalette;
 
 const TodayScreen = ({
   focusedIntakeId,
