@@ -11,7 +11,7 @@ import { usePilloContext } from '@/providers/pillo-provider';
 import { radii, spacing } from '@/theme/tokens';
 import { usePilloTheme } from '@/theme/use-pillo-theme';
 
-export const MedicationsScreen = () => {
+export const MedicationsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
   const { addPackage, createMedicationId, deleteMedication, saveMedication, snapshot, takeMedicationNow } = usePilloContext();
   const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
   const [newMedicationId, setNewMedicationId] = useState('');
@@ -27,7 +27,7 @@ export const MedicationsScreen = () => {
 
   return (
     <View style={styles.screenRoot}>
-      <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]} contentInsetAdjustmentBehavior="automatic">
+      <ScrollView contentContainerStyle={[styles.screenContent, !isLargeText && styles.screenWithFloatingActions]} contentInsetAdjustmentBehavior="automatic">
         <Text style={[styles.eyebrow, { color: palette.textMuted }]}>МОИ ПРЕПАРАТЫ</Text>
         {snapshot.medications.length === 0 ? (
           <Surface palette={palette} style={styles.emptySurface}><Text style={styles.emptyIcon}>＋</Text><Text style={[styles.emptyTitle, { color: palette.text }]}>Список пока пуст</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>Добавьте первый препарат, затем настройте расписание.</Text></Surface>
@@ -40,7 +40,7 @@ export const MedicationsScreen = () => {
             return (
               <SwipeableCard accessibilityLabel={`Изменить препарат ${medication.name}`} deleteColor={palette.danger} key={medication.id} onDelete={() => Alert.alert('Удалить препарат?', 'Расписание и история этого препарата тоже будут удалены.', [{ text: 'Отмена', style: 'cancel' }, { text: 'Удалить', style: 'destructive', onPress: () => void deleteMedication(medication.id) }])} onPress={() => { setEditingMedication(medication); setMedicationFormOpen(true); }} style={styles.gridCardContainer}>
                 <Surface palette={palette} style={[styles.gridCard, isLowStock ? { borderColor: palette.warning } : undefined]}>
-                  <View style={styles.cardHeader}><View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><Text style={[styles.medicationGlyphText, { color: palette.primary }]}>✦</Text></View><View style={styles.cardHeaderCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || 'Без дозировки'} · {medication.form}</Text></View></View>
+                  <View style={[styles.cardHeader, isLargeText && styles.cardHeaderLarge]}><View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><Text style={[styles.medicationGlyphText, { color: palette.primary }]}>✦</Text></View><View style={[styles.cardHeaderCopy, isLargeText && styles.cardHeaderCopyLarge]}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || 'Без дозировки'} · {medication.form}</Text></View></View>
                   <View style={styles.stockRow}><Text style={[styles.stockNumber, { color: palette.text }]}>{medication.stockUnits}</Text><Text style={[styles.stockUnit, { color: palette.textMuted }]}>ед. в наличии</Text><View style={[styles.stockBadge, { backgroundColor: isLowStock ? palette.warningSoft : palette.successSoft }]}><Text style={{ color: isLowStock ? palette.warning : palette.success, fontWeight: '800' }}>{isLowStock ? 'СКОРО ЗАКОНЧИТСЯ' : 'ЗАПАС ЕСТЬ'}</Text></View></View>
                   <View style={[styles.progressTrack, { backgroundColor: palette.surfaceMuted }]}><View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} /></View>
                   <View style={styles.cardActions}><ActionButton label="Принять сейчас" onPress={() => setQuickIntakeMedication(medication)} palette={palette} tone="secondary" /><ActionButton label="＋ Упаковка" onPress={() => void addPackage(medication.id)} palette={palette} /></View>
@@ -49,8 +49,9 @@ export const MedicationsScreen = () => {
             );
           })}</View>
         )}
+        {isLargeText ? <View style={styles.inlineFooter}><NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={openNewMedication} tintColor={palette.primary} /></View> : null}
       </ScrollView>
-      <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}><NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={openNewMedication} tintColor={palette.primary} /></View>
+      {!isLargeText ? <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}><NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={openNewMedication} tintColor={palette.primary} /></View> : null}
       {isMedicationFormOpen ? <MedicationForm isDark={isDark} key={editingMedication?.id ?? 'new-medication'} medication={editingMedication} newId={newMedicationId} onClose={() => setMedicationFormOpen(false)} onSave={saveMedication} visible /> : null}
       <ManualIntakeSheet initialMedicationId={quickIntakeMedication?.id} isDark={isDark} key={quickIntakeMedication ? `manual-open:${quickIntakeMedication.id}` : 'manual-closed'} medications={snapshot.medications} onClose={() => setQuickIntakeMedication(null)} onSave={takeMedicationNow} visible={quickIntakeMedication !== null} />
     </View>
@@ -59,9 +60,10 @@ export const MedicationsScreen = () => {
 
 const styles = StyleSheet.create({
   screenRoot: { flex: 1 },
-  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: 48, paddingTop: spacing.xl, width: '100%' },
+  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' },
   screenWithFloatingActions: { paddingBottom: 176 },
   floatingFooter: { bottom: 0, left: 0, padding: spacing.lg, position: 'absolute', right: 0 },
+  inlineFooter: { marginTop: spacing.md },
   eyebrow: { fontSize: 14, fontWeight: '800', letterSpacing: 2.6, marginHorizontal: spacing.sm },
   emptySurface: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { fontSize: 28, marginBottom: spacing.md },
@@ -71,7 +73,9 @@ const styles = StyleSheet.create({
   gridCardContainer: { flexBasis: 300, flexGrow: 1 },
   gridCard: { flexBasis: 300, flexGrow: 1, gap: spacing.lg },
   cardHeader: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
+  cardHeaderLarge: { flexDirection: 'column' },
   cardHeaderCopy: { flex: 1 },
+  cardHeaderCopyLarge: { flex: undefined, width: '100%' },
   medicationGlyph: { alignItems: 'center', borderRadius: radii.md, height: 52, justifyContent: 'center', width: 52 },
   medicationGlyphText: { fontSize: 22, fontWeight: '700' },
   cardTitle: { fontSize: 17, fontWeight: '700' },

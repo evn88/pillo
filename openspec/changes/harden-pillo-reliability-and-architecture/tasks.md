@@ -58,16 +58,16 @@
 
 - [x] 5.1 Разнести screens/формы/common shell по ответственности; удалить зависимость UI-контракта от ReturnType большого hook; domain/application не импортируют React Native/Expo. `App.tsx` удалён: четыре route используют `PilloShell` и свои screens, каждый владеет только своими формами/модалями.
 - [x] 5.2 Единый theme contract и варианты кнопок, актуальные callbacks, независимое владение диалогами. Убрать генерацию ID из render. Единый `usePilloTheme` не выводит тему из цвета; ID создаются при намерении открыть форму.
-- [ ] 5.3 Исправить labels, accessibility actions, nested presses, safe area, keyboard avoidance, размеры от контейнера, большой шрифт и split view. Выполнены статические исправления labels/actions, scroll insets, keyboard avoidance и отказ от window-width/fixed tab offset; regression: `swipeable-card.test.tsx`. VoiceOver/TalkBack, большой шрифт, split view и rotation остаются device-приёмкой.
+- [ ] 5.3 Исправить labels, accessibility actions, nested presses, safe area, keyboard avoidance, размеры от контейнера, большой шрифт и split view. Выполнены статические исправления labels/actions, scroll insets, keyboard avoidance и отказ от window-width/fixed tab offset; при `fontScale >= 1.4` header, карточки, actions и theme options переходят в безопасную вертикальную компоновку, а iOS 26.5 Simulator Release проверен при `accessibility-extra-extra-extra-large` в portrait/landscape. Regression: `swipeable-card.test.tsx`. VoiceOver/TalkBack, keyboard, iPad split view и Android остаются device-приёмкой.
 - [ ] 5.4 Убрать вычисления закрытой истории, измерить 10 000 событий в release. Добавить ограниченный render/пагинацию; нормализацию SQL и новую библиотеку вводить только с обоснованием измерениями.
 - [x] 5.5 Удалить подтверждённые unused styles/components/assets, устранить импорт через незаявленную транзитивную зависимость; уменьшить header logo при измеримой пользе. Удалены `SectionHeading` и шесть неиспользуемых шаблонных PNG; `sf-symbols-typescript` объявлен напрямую. Уменьшение используемого logo не выполнялось: измеримой пользы пока нет.
-- [ ] 5.6 Проверить четыре раздела, создание/редактирование/ошибки форм, VoiceOver/TalkBack, Android back, rotation, small phone/tablet, light/dark и старый iOS UI fallback.
+- [ ] 5.6 Проверить четыре раздела, создание/редактирование/ошибки форм, VoiceOver/TalkBack, Android back, rotation, small phone/tablet, light/dark и старый iOS UI fallback. iPhone 17 Pro iOS 26.5 Simulator Release: четыре tabs и доступные controls проверены, Today/Settings визуально проверены при максимальном Dynamic Type и rotation; формы, tablet, Android и physical-device matrix остаются.
 
 Выход: разделённые слои и отсутствие регрессий текущего интерфейса; не проведённый визуальный тест остаётся незакрытым.
 
 ## 6. Приватность и документация — A23, A24
 
-- [ ] 6.1 Android `allowBackup=false` подтверждён в сгенерированном manifest. iOS path-level adapter повторно исключает SQLite/WAL/SHM при открытии и после записи; его CNG/autolinking и unsigned Release compile подтверждены. Нужен реальный Android/iOS backup/transfer restore на устройстве. Доказательство: `evidence/native-build-matrix.md`.
+- [ ] 6.1 Android `allowBackup=false` подтверждён в сгенерированном manifest. iOS path-level adapter повторно исключает SQLite/WAL/SHM при открытии и после записи; его CNG/autolinking, unsigned Release compile и Simulator runtime xattr на SQLite/WAL/SHM подтверждены. Нужен реальный Android/iOS backup/transfer restore на физическом устройстве. Доказательство: `evidence/native-build-matrix.md`.
 - [x] 6.2 Согласовать clear-data и recovery: прикладные записи, собственные backup-файлы, scheduled/delivered notifications, повторный запуск и retry при отказе OS API. `clear-data` атомарно очищает документ/recovery, reconciliation отменяет scheduled события, а adapter отдельно dismisses delivered notifications; отказ OS API виден и повторная очистка повторяет попытку.
 - [x] 6.3 Обновить README под реальное приложение, поддерживаемые ОС, сборки, ограничения покрытия и очистки. Отдельно пометить прежнее описание историческим; не потерять перечисленные там идеи. README отражает local-only, версии ОС, builds, coverage и logical clear; `pillo-mini-app-description.md` сохранён как явно исторический архив.
 
@@ -76,8 +76,8 @@
 ## 7. Приёмка и выпуск — все пункты
 
 - [x] 7.1 Выполнить `npm run type-check`, `npm test`, добавленную lint-команду, актуальную compatibility-проверку; npm audit с triage. Все команды и текущие ограничения зафиксированы в `evidence/dependency-triage.md`.
-- [ ] 7.2 Exports iOS/Android и unsigned iOS Release compile-only выполнены; настоящие native release-сборки с подписью и установка остаются. Проверить обновление поверх v1 с историей, rollback/recovery и повторный запуск. Доказательство: `evidence/native-build-matrix.md`.
-- [ ] 7.3 Пройти матрицу iOS/Android из design.md, включая устройства и длинный notification-сценарий; приложить доказательства. Ускоренные clock-тесты не заменяют длительный системный сценарий.
+- [ ] 7.2 Exports iOS/Android, unsigned iOS Release compile-only и unsigned iOS Simulator Release install/launch выполнены; настоящие native release-сборки с подписью и установка остаются. Проверить обновление поверх v1 с историей, rollback/recovery и повторный запуск. Доказательство: `evidence/native-build-matrix.md`.
+- [ ] 7.3 Пройти матрицу iOS/Android из design.md, включая устройства и длинный notification-сценарий; iPhone 17 Pro iOS 26.5 Simulator покрыт только как partial smoke. Приложить доказательства. Ускоренные clock-тесты не заменяют длительный системный сценарий.
 - [x] 7.4 Проверить трассировку каждого Axx → задача → тест/доказательство, не закрывать подтверждённые проблемы только переносом файлов. Доказательство: `evidence/traceability.md`; device/open acceptance явно остаётся открытой.
 - [x] 7.5 Выполнить `openspec validate harden-pillo-reliability-and-architecture --strict` и `git diff --check`; синхронизировать документы с фактическими результатами. На 2026-09-13 также пройдены type-check, lint и 66 тестов. Архивировать изменение только после полной приёмки, отдельно от публикации приложения.
 

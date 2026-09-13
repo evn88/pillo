@@ -21,6 +21,7 @@ const TabLayout = () => {
         default: { color: palette.textMuted },
         selected: { color: palette.primary, fontWeight: '600' }
       }}
+      minimizeBehavior="onScrollDown"
       shadowColor={isDark ? palette.background : palette.border}
       tintColor={palette.primary}
       unstable_nativeProps={{ colorScheme: isDark ? 'dark' : 'light' }}

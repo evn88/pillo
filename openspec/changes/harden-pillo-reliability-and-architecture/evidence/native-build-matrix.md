@@ -77,6 +77,25 @@ On 2026-09-13, the local `modules/pillo-data-privacy` Expo module was generated 
 
 `npx expo-modules-autolinking resolve --platform ios` resolved `PilloDataPrivacy`; the regenerated Pod install included `PilloDataPrivacy (1.0.0)`. The unsigned generic-device Release build completed successfully after this change, producing `Pillo.app/Pillo`. This proves source compilation and native registration only. It does not inspect the resource value on a physical device or establish backup/transfer behavior.
 
+## iOS Simulator Release evidence
+
+On 2026-09-13, an unsigned `Release-iphonesimulator` build was created in isolated DerivedData, installed and launched on the booted **iPhone 17 Pro, iOS 26.5** simulator (`11183056-54C5-4613-844B-8B33AA336F1F`):
+
+```bash
+xcodebuild -quiet -workspace ios/Pillo.xcworkspace -scheme Pillo \
+  -configuration Release -sdk iphonesimulator \
+  -destination 'id=11183056-54C5-4613-844B-8B33AA336F1F' \
+  -derivedDataPath /private/tmp/pillo-ios-simulator-derived-20260913 \
+  CODE_SIGNING_ALLOWED=NO build
+xcrun simctl install 11183056-54C5-4613-844B-8B33AA336F1F \
+  /private/tmp/pillo-ios-simulator-derived-20260913/Build/Products/Release-iphonesimulator/Pillo.app
+xcrun simctl launch 11183056-54C5-4613-844B-8B33AA336F1F com.vershkov.pillo
+```
+
+The simulator container contained `pillo.db`, `pillo.db-wal` and `pillo.db-shm`; `xattr -l` reported `com.apple.metadata:com_apple_backup_excludeItem: com.apple.MobileBackup` on all three files. The Release app rendered its four tabs and exposed the medication, schedule, notification switch, retry, history and destructive-clear controls in the accessibility tree. At `accessibility-extra-extra-extra-large`, portrait and landscape layouts used a vertically reflowed header, cards and actions without clipping their accessible controls.
+
+This is runtime evidence for the iOS file-level adapter and a simulator visual smoke. A simulator has no signed artifact, physical backup service, iCloud/iTunes restore or device-to-device transfer, so it does not close the physical-device portion of tasks 6.1, 7.2 or 7.3.
+
 ## Not yet evidenced
 
-The iOS and Android projects are generated locally and ignored by Git; no Android SDK/adb, device, signing credentials, installation, or release artifact was available in this workspace. `xcrun simctl list devices available` also failed because CoreSimulatorService was unavailable. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
+The iOS and Android projects are generated locally and ignored by Git. No Android SDK/adb, Android device, signing credentials, physical-device installation or release artifact was available in this workspace. The iOS simulator evidence above does not exercise system notification delivery, physical backup/transfer, signing or Android behaviour. Tasks 4.1, 4.7, 5.4, 5.6, 6.1, 7.2 and 7.3 remain acceptance work.

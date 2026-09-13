@@ -118,11 +118,11 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
 };
 
 const styles = StyleSheet.create({
-  host: { height: 60 },
+  host: { minHeight: 60 },
   fullWidthHost: { alignSelf: 'stretch' },
   fillHost: { flex: 1 },
   iconHost: { height: 60, width: 60 },
-  historyHost: { height: 60 },
+  historyHost: { minHeight: 60 },
   universalButton: { borderRadius: 999, height: 56 },
   fullWidthButton: { alignSelf: 'stretch' },
   universalHistory: { borderRadius: 999, height: 56 }

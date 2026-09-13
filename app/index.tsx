@@ -7,7 +7,7 @@ const TodayRoute = () => {
   const { intakeId } = useLocalSearchParams<{ intakeId?: string | string[] }>();
   const focusedIntakeId = typeof intakeId === 'string' ? intakeId : undefined;
 
-  return <PilloShell>{() => <TodayScreen focusedIntakeId={focusedIntakeId} />}</PilloShell>;
+  return <PilloShell>{({ isLargeText }) => <TodayScreen focusedIntakeId={focusedIntakeId} isLargeText={isLargeText} />}</PilloShell>;
 };
 
 export default TodayRoute;

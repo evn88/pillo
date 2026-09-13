@@ -4,15 +4,15 @@
 
 ## Что завершено
 
-Основное архитектурное ядро реализовано и подключено к существующему UI. В tasks.md закрыты 33 из 41 задач; восемь оставшихся требуют физического устройства, подписи или системного поведения. Приложение остаётся Expo / React Native, без сервера, аккаунта и новых зависимостей.
+Основное архитектурное ядро реализовано и подключено к существующему UI. В tasks.md закрыты 33 из 41 задач; восемь оставшихся требуют Android, физического устройства, подписи или системного поведения. Приложение остаётся Expo / React Native, без сервера, аккаунта и новых зависимостей.
 
 | Область | Реализация | Проверка |
 | --- | --- | --- |
 | Контракты | `src/application/contracts.ts`, `src/domain/command-types.ts` | TypeScript, import-boundary test |
 | Команды | `src/application/pillo-controller.ts`, `src/domain/commands.ts` | Queue, отказ первой записи, повтор command ID, отсутствие optimistic state |
-| React bridge | `src/hooks/use-pillo.ts`, `src/providers/pillo-provider.tsx` | TypeScript/exports; native mount и UI smoke ещё нужны |
+| React bridge | `src/hooks/use-pillo.ts`, `src/providers/pillo-provider.tsx` | TypeScript/exports; iOS Simulator Release mount и UI smoke пройдены, Android и physical-device acceptance ещё нужны |
 | Валидация | `src/domain/validation.ts`, `document-validation.ts` | Decimal, даты, связи, shape, precision, legacy |
-| SQLite и приватность | `src/storage/sqlite-repository.ts`, `vault.native.ts`, `modules/pillo-data-privacy` | Настоящие Node SQLite transactions, rollback, newer-version, missing row, CAS, recovery; iOS SQLite/WAL/SHM backup exclusion после открытия и записи, native autolinking и unsigned Release compile |
+| SQLite и приватность | `src/storage/sqlite-repository.ts`, `vault.native.ts`, `modules/pillo-data-privacy` | Настоящие Node SQLite transactions, rollback, newer-version, missing row, CAS, recovery; iOS SQLite/WAL/SHM backup exclusion после открытия и записи, native autolinking, unsigned Release compile и Simulator xattr на всех трёх файлах |
 | Учёт | Stock effect в Intake, команды переходов | 0.5 → take 1 → undo, независимое пополнение, идемпотентность, legacy unknown |
 | Календарь | `src/domain/calendar.ts`, `schedule.ts`, `src/application/calendar-lifecycle.ts` | Изменение будущего плана, история, DST, полночь, foreground, неизвестные интервалы |
 | Уведомления | `src/application/notification-plan.ts`, controller, `src/services/notifications.native.ts` | Fake gateway: частичный отказ, restart, concurrent delete, отказ ACK, denied, take/undo |
@@ -49,9 +49,9 @@
 ## Оставшаяся приёмка
 
 1. **4.1 и 4.7.** На iOS и Android проверить capacity/coverage уведомлений: начало и окончание курса, один пропуск, DST, 10 событий в день 35 дней без запуска, offline, reboot, force-stop, энергосбережение и отзыв permission. Если 60 DATE-событий не дают продуктовый сценарий, только тогда выбирать recurring triggers или маленький Swift/Kotlin adapter.
-2. **5.3–5.6.** На реальных small phone/tablet пройти VoiceOver/TalkBack, большой шрифт, keyboard, rotation, split view, Android Back и light/dark. Статические labels/actions, insets, keyboard avoidance, pagination и 10 000 записей уже проверены автоматическими тестами; release profile остаётся обязательным.
-3. **6.1.** После записи данных проверить на устройстве фактическое исключение iOS SQLite/WAL/SHM, Android/iOS cloud backup и device-to-device transfer/restore. Android manifest уже имеет `allowBackup=false`; iOS adapter скомпилирован, но это не заменяет системную проверку.
-4. **7.2–7.3.** Создать подписанные release builds, установить и обновить v1 → v2 с историей, проверить recovery/restart и заполнить матрицу минимальных/актуальных ОС. Установленных устройств или Android SDK/adb в текущем workspace нет; CoreSimulatorService недоступен.
+2. **5.3–5.6.** iPhone 17 Pro iOS 26.5 Simulator Release уже покрывает четыре tabs, accessibility tree, max Dynamic Type и portrait/landscape для Today/Settings. На реальных small phone/tablet пройти VoiceOver/TalkBack, keyboard, split view, Android Back и light/dark; forms и 10 000-event release profile остаются обязательными.
+3. **6.1.** Simulator подтвердил exclusion xattr для iOS SQLite/WAL/SHM после записи. На физическом устройстве всё ещё нужны Android/iOS cloud backup и device-to-device transfer/restore. Android manifest уже имеет `allowBackup=false`.
+4. **7.2–7.3.** Создать подписанные release builds, установить и обновить v1 → v2 с историей, проверить recovery/restart и заполнить матрицу минимальных/актуальных ОС. В текущем workspace нет Android SDK/adb и физического устройства; unsigned iOS Simulator Release install/launch уже подтверждён.
 
 ## Проверки этого этапа
 
@@ -67,7 +67,7 @@
 | Import boundaries | PASS в составе тестов |
 | `git diff --check` | PASS |
 | `openspec validate harden-pillo-reliability-and-architecture --strict` | PASS, exit 0 |
-| Device smoke / OS backup-transfer / реальные долгие уведомления / signed install | НЕ ВЫПОЛНЕНЫ |
+| iOS Simulator Release smoke / OS backup-transfer / реальные долгие уведомления / signed install | Simulator smoke PASS; остальные проверки НЕ ВЫПОЛНЕНЫ |
 
 Предупреждение Node об экспериментальном SQLite API и Metro о NO_COLOR не приводят к отказу проверок. Native rendering, Expo SQLite bridge и доставка системой не доказаны этими тестами.
 
