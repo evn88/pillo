@@ -90,6 +90,24 @@ describe('календарь и история', () => {
     expect(extendCoverage([{ from: '2026-01-01', through: '2026-01-31' }], '2026-03-01', '2026-04-01')).toHaveLength(2);
     expect(extendCoverage([{ from: '2026-01-01', through: '2026-01-31' }], '2026-02-01', '2026-02-28')).toEqual([{ from: '2026-01-01', through: '2026-02-28' }]);
   });
+  it('после нескольких дней в фоне сохраняет прошлые неотмеченные события и создаёт текущие без дублей', () => {
+    const opened = reconcileCalendar(snapshot, now);
+    const returned = reconcileCalendar(opened, new Date(2026, 8, 16, 8));
+
+    expect(returned.intakes.filter(intake => intake.localDate >= '2026-09-13' && intake.localDate <= '2026-09-16')).toHaveLength(4);
+    expect(returned.intakes.filter(intake => intake.localDate === '2026-09-13' && intake.status === 'PENDING')).toHaveLength(1);
+    expect(reconcileCalendar(returned, new Date(2026, 8, 16, 8))).toEqual(returned);
+  });
+  it('не меняет уже наступивший PENDING при правке правила после его времени', () => {
+    const initial = reconcileCalendar(snapshot, now);
+    const changed = reconcileCalendar(
+      applyCommand(initial, { type: 'save-rule', rule: { ...rule, time: '10:00', doseUnits: 2 } }, new Date(2026, 8, 13, 10)),
+      new Date(2026, 8, 13, 10)
+    );
+
+    expect(changed.intakes.find(intake => intake.id === 'r1:2026-09-13')).toMatchObject({ localTime: '09:00', doseUnits: 1, status: 'PENDING' });
+    expect(changed.intakes.filter(intake => intake.id === 'r1:2026-09-14')).toMatchObject([{ localTime: '10:00', doseUnits: 2 }]);
+  });
   it('учитывает границу курса, leap day и неактивный препарат', () => {
     expect(fromLocalDateTime('2028-02-29', '09:00')).not.toBeNull();
     expect(fromLocalDateTime('2027-02-29', '09:00')).toBeNull();
