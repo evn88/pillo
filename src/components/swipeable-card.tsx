@@ -16,13 +16,14 @@ const fullSwipeThreshold = 148;
 type SwipeableCardProps = {
   accessibilityLabel: string;
   children: ReactNode;
+  footer?: ReactNode;
   deleteColor: string;
   onDelete: () => void;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export const SwipeableCard = ({ accessibilityLabel, children, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
+export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
   const [translateX] = useState(() => new Animated.Value(0));
   const [panResponder, setPanResponder] = useState<ReturnType<typeof PanResponder.create> | null>(null);
   const currentOffset = useRef(0);
@@ -101,6 +102,7 @@ export const SwipeableCard = ({ accessibilityLabel, children, deleteColor, onDel
         >
           {children}
         </Pressable>
+        {footer}
       </Animated.View>
     </View>
   );

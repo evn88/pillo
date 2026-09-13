@@ -39,12 +39,11 @@ export const MedicationsScreen = ({ isLargeText }: { isLargeText: boolean }) => 
             const progress = Math.min(100, Math.round((medication.stockUnits / packageSize) * 100));
 
             return (
-              <SwipeableCard accessibilityLabel={`Изменить препарат ${medication.name}`} deleteColor={palette.danger} key={medication.id} onDelete={() => Alert.alert('Удалить препарат?', 'Расписание и история этого препарата тоже будут удалены.', [{ text: 'Отмена', style: 'cancel' }, { text: 'Удалить', style: 'destructive', onPress: () => void deleteMedication(medication.id) }])} onPress={() => { setEditingMedication(medication); setMedicationFormOpen(true); }} style={styles.gridCardContainer}>
-                <Surface palette={palette} style={[styles.gridCard, isLowStock ? { borderColor: palette.warning } : undefined]}>
+              <SwipeableCard footer={<View style={[styles.cardActions, styles.cardFooter, { backgroundColor: palette.surface, borderColor: palette.border }]}><ActionButton label="Записать приём" onPress={() => setQuickIntakeMedication(medication)} palette={palette} tone="secondary" /><ActionButton label="Добавить упаковку" tone="secondary" onPress={() => void addPackage(medication.id)} palette={palette} /></View>} accessibilityLabel={`Изменить препарат ${medication.name}`} deleteColor={palette.danger} key={medication.id} onDelete={() => Alert.alert('Удалить препарат?', 'Расписание и история этого препарата тоже будут удалены.', [{ text: 'Отмена', style: 'cancel' }, { text: 'Удалить', style: 'destructive', onPress: () => void deleteMedication(medication.id) }])} onPress={() => { setEditingMedication(medication); setMedicationFormOpen(true); }} style={styles.gridCardContainer}>
+                <Surface palette={palette} style={[styles.gridCard, styles.cardWithFooter, isLowStock ? { borderColor: palette.warning } : undefined]}>
                   <View style={[styles.cardHeader, isLargeText && styles.cardHeaderLarge]}><View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} /></View><View style={[styles.cardHeaderCopy, isLargeText && styles.cardHeaderCopyLarge]}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || 'Без дозировки'} · {medication.form}</Text></View></View>
                   <View style={styles.stockRow}><Text style={[styles.stockNumber, { color: palette.text }]}>{medication.stockUnits}</Text><Text style={[styles.stockUnit, { color: palette.textMuted }]}>ед. в наличии</Text><View style={[styles.stockBadge, { backgroundColor: isLowStock ? palette.warningSoft : palette.successSoft }]}><Text style={{ color: isLowStock ? palette.warning : palette.success, fontWeight: '800' }}>{isLowStock ? 'Мало осталось' : 'В наличии'}</Text></View></View>
                   <View style={[styles.progressTrack, { backgroundColor: palette.surfaceMuted }]}><View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} /></View>
-                  <View style={styles.cardActions}><ActionButton label="Принять сейчас" onPress={() => setQuickIntakeMedication(medication)} palette={palette} tone="secondary" /><ActionButton label="Добавить упаковку" tone="secondary" onPress={() => void addPackage(medication.id)} palette={palette} /></View>
                 </Surface>
               </SwipeableCard>
             );
@@ -85,5 +84,7 @@ const styles = StyleSheet.create({
   stockBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   progressTrack: { borderRadius: radii.pill, height: 8, marginTop: spacing.md, overflow: 'hidden' },
   progressFill: { borderRadius: radii.pill, height: '100%' },
+  cardWithFooter: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
+  cardFooter: { marginTop: 0, padding: spacing.lg, borderWidth: 1, borderTopWidth: 0, borderBottomLeftRadius: radii.lg, borderBottomRightRadius: radii.lg },
   cardActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg }
 });

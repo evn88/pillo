@@ -58,7 +58,7 @@ export const NativeActionButton = ({
             disabledModifier(disabled),
             buttonFrame,
             tint(tintColor),
-            ...(tone === 'primary' ? [foregroundStyle(isDark ? '#343434' : '#FFFFFF')] : [])
+            ...(tone === 'primary' ? [foregroundStyle(disabled ? (isDark ? '#FFFFFF' : '#343434') : isDark ? '#343434' : '#FFFFFF')] : [])
           ]}
         />
       </SwiftUIHost>
