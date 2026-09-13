@@ -1,5 +1,6 @@
-import { PilloApplication } from '../App';
+import { PilloShell } from '@/components/pillo-shell';
+import { ScheduleScreen } from '@/screens/schedule-screen';
 
-const ScheduleRoute = () => <PilloApplication activeTab="schedule" />;
+const ScheduleRoute = () => <PilloShell>{() => <ScheduleScreen />}</PilloShell>;
 
 export default ScheduleRoute;

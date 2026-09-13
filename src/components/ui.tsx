@@ -57,7 +57,7 @@ export const ActionButton = ({
     <NativeActionButton
       disabled={disabled}
       fill={fill}
-      isDark={palette.background === colors.dark.background}
+      isDark={palette === colors.dark}
       label={label}
       onPress={onPress}
       tintColor={tone === 'danger' ? palette.danger : palette.primary}

@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 
-import { PilloApplication } from '../App';
+import { PilloShell } from '@/components/pillo-shell';
+import { TodayScreen } from '@/screens/today-screen';
 
 const TodayRoute = () => {
   const { intakeId } = useLocalSearchParams<{ intakeId?: string | string[] }>();
   const focusedIntakeId = typeof intakeId === 'string' ? intakeId : undefined;
 
-  return <PilloApplication activeTab="today" focusedIntakeId={focusedIntakeId} />;
+  return <PilloShell>{() => <TodayScreen focusedIntakeId={focusedIntakeId} />}</PilloShell>;
 };
 
 export default TodayRoute;
