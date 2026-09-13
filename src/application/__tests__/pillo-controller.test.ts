@@ -178,6 +178,20 @@ describe('восстановимая проекция уведомлений', (
     expect(gateway.access).toHaveBeenLastCalledWith(true);
     await controller.dispose();
   });
+  it('повторно сверяет системные напоминания при foreground refresh', async () => {
+    const { controller, gateway } = fixture();
+    vi.mocked(gateway.access).mockResolvedValueOnce({ authorization: 'denied', exact: 'unknown', channel: 'blocked', canAskAgain: false, requested: false });
+    await controller.start(); await controller.whenIdle();
+    expect(controller.getState().notificationStatus).toBe('blocked');
+
+    vi.mocked(gateway.access).mockResolvedValue({ authorization: 'granted', exact: 'system', channel: 'available', canAskAgain: false, requested: false });
+    await controller.execute('foreground-refresh', { type: 'refresh-calendar' });
+    await controller.whenIdle();
+
+    expect(controller.getState().notificationStatus).toBe('ready');
+    expect(gateway.access).toHaveBeenLastCalledWith(false);
+    await controller.dispose();
+  });
   it('показывает границу покрытия перед первым неуместившимся событием', () => {
     const dense = reconcileCalendar({ ...snapshot, scheduleRules: Array.from({ length: 10 }, (_, index) => ({ ...snapshot.scheduleRules[0]!, id: `r${index}` })) }, now);
     const plan = buildNotificationPlan(dense, now);

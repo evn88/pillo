@@ -10,6 +10,15 @@ import { usePilloTheme } from '@/theme/use-pillo-theme';
 export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
   const { clearData, coverageEndsAt, notificationAccess, notificationError, notificationStatus, openNotificationSettings, retryNotifications, snapshot, updateSettings } = usePilloContext();
   const { palette, isDark } = usePilloTheme(snapshot.settings.theme);
+  const notificationStatusCopy = notificationStatus === 'ready'
+    ? 'Системные напоминания включены.'
+    : notificationStatus === 'syncing' || notificationStatus === 'checking'
+      ? 'Проверяем системные напоминания…'
+      : notificationStatus === 'blocked'
+        ? 'Система не разрешает доставлять напоминания.'
+        : 'Не удалось обновить системные напоминания.';
+  const canRequestPermission = notificationStatus === 'blocked' && notificationAccess?.authorization === 'denied' && notificationAccess.canAskAgain && notificationAccess.channel !== 'blocked';
+  const needsSystemSettings = notificationStatus === 'blocked' && (notificationAccess?.channel === 'blocked' || notificationAccess?.authorization === 'denied' && !notificationAccess.canAskAgain);
 
   const clearAllData = () => {
     Alert.alert(
@@ -37,15 +46,13 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
             <Switch accessibilityLabel="Напоминания о приёме" ios_backgroundColor={palette.surfaceMuted} onValueChange={value => void updateSettings({ notificationsEnabled: value })} trackColor={{ false: palette.surfaceMuted, true: Platform.OS === 'ios' ? palette.success : palette.successSoft }} thumbColor={Platform.OS === 'android' ? (snapshot.settings.notificationsEnabled ? palette.success : palette.textMuted) : undefined} value={snapshot.settings.notificationsEnabled} />
           </View>
           {snapshot.settings.notificationsEnabled ? <View style={styles.statusCopy}>
-            <Text style={{ color: palette.textMuted }}>Напоминания: {notificationStatus === 'ready' ? 'обновлены' : notificationStatus === 'disabled' ? 'выключены' : notificationStatus === 'syncing' ? 'обновляются' : 'требуют проверки'}.</Text>
-            <Text style={{ color: palette.textMuted }}>Напоминания запланированы до: {notificationStatus === 'ready' && coverageEndsAt ? new Date(coverageEndsAt).toLocaleString('ru-RU') : 'не подтверждено'}.</Text>
-            {notificationAccess?.requested ? <Text style={{ color: palette.textMuted }}>Запрос разрешения отправлен системе.</Text> : null}
-            {notificationAccess?.authorization === 'denied' ? <Text style={{ color: palette.danger }}>Системные уведомления запрещены{notificationAccess.canAskAgain ? '; повторите запрос' : '; откройте настройки устройства'}.</Text> : null}
-            {notificationAccess?.authorization === 'quiet' ? <Text style={{ color: palette.textMuted }}>Система разрешает тихие уведомления.</Text> : null}
-            {notificationAccess?.exact === 'unknown' ? <Text style={{ color: palette.textMuted }}>Точное время доставки Android не подтверждено.</Text> : null}
-            {notificationAccess?.channel === 'blocked' ? <Text style={{ color: palette.danger }}>Канал напоминаний отключён в настройках Android.</Text> : null}
-            <ActionButton tone="secondary" label="Обновить напоминания" onPress={retryNotifications} palette={palette} />
-            {notificationAccess?.authorization === 'denied' ? <ActionButton label="Открыть настройки уведомлений" onPress={() => void openNotificationSettings()} palette={palette} tone="secondary" /> : null}
+            <Text style={{ color: notificationStatus === 'blocked' || notificationStatus === 'error' ? palette.danger : palette.textMuted }}>{notificationStatusCopy}</Text>
+            {notificationStatus === 'ready' && coverageEndsAt ? <Text style={{ color: palette.textMuted }}>Напоминания подготовлены до {new Date(coverageEndsAt).toLocaleString('ru-RU')}.</Text> : null}
+            {notificationAccess?.authorization === 'quiet' ? <Text style={{ color: palette.textMuted }}>Уведомления будут приходить без звука.</Text> : null}
+            {notificationAccess?.exact === 'unknown' ? <Text style={{ color: palette.textMuted }}>На Android время доставки может немного отличаться из-за ограничений системы.</Text> : null}
+            {notificationStatus === 'error' ? <ActionButton tone="secondary" label="Повторить обновление" onPress={retryNotifications} palette={palette} /> : null}
+            {canRequestPermission ? <ActionButton tone="secondary" label="Разрешить уведомления" onPress={retryNotifications} palette={palette} /> : null}
+            {needsSystemSettings ? <ActionButton label="Открыть настройки уведомлений" onPress={() => void openNotificationSettings()} palette={palette} tone="secondary" /> : null}
           </View> : null}
         </Surface>
       </View>
@@ -65,7 +72,7 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
 
 const styles = StyleSheet.create({
   pageTitle: { fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
-  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' },
+  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl * 4, paddingTop: spacing.xl, width: '100%' },
   list: { gap: spacing.md },
   eyebrow: { fontSize: 17, fontWeight: '600', marginHorizontal: spacing.sm },
   settingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
