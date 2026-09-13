@@ -11,6 +11,10 @@ type ScreenAction = { label: string; onPress: () => void; disabled?: boolean; de
 type Registry = Record<string, ScreenAction[]>;
 const ActionsContext = createContext<{ actions: Registry; register: (route: string, actions: ScreenAction[]) => void } | null>(null);
 export const supportsTabAccessory = Platform.OS === 'ios' && Number.parseInt(String(Platform.Version), 10) >= 26;
+export const useScreenPrimaryAction = () => {
+  const pathname = usePathname();
+  return useContext(ActionsContext)?.actions[pathname]?.[0];
+};
 
 export const ScreenActionsProvider = ({ children }: { children: ReactNode }) => {
   const [actions, setActions] = useState<Registry>({});
@@ -18,9 +22,8 @@ export const ScreenActionsProvider = ({ children }: { children: ReactNode }) => 
   return <ActionsContext.Provider value={{ actions, register }}>{children}</ActionsContext.Provider>;
 };
 
-export const ScreenActions = ({ route, actions }: { route: string; actions: ScreenAction[] }) => {
+export const ScreenActions = ({ route, actions, inlineFallback = true }: { route: string; actions: ScreenAction[]; inlineFallback?: boolean }) => {
   const registry = useContext(ActionsContext);
-  const isLargeText = useLargeTextLayout();
   const latest = useRef(actions);
   useLayoutEffect(() => { latest.current = actions; }, [actions]);
   const signature = JSON.stringify(actions.map(({ label, disabled, detail, menuItems, onDetails }) => ({ label, disabled, detail, hasDetails: Boolean(onDetails), menuLabels: menuItems?.map(item => item.label) })));
@@ -37,7 +40,7 @@ export const ScreenActions = ({ route, actions }: { route: string; actions: Scre
     register?.(route, stableActions);
     return () => register?.(route, []);
   }, [register, route, stableActions]);
-  return supportsTabAccessory && !isLargeText ? null : <ActionRow actions={actions} />;
+  return supportsTabAccessory || !inlineFallback ? null : <ActionRow actions={actions} />;
 };
 
 export const TabActions = () => {

@@ -31,5 +31,6 @@ export const Alert = { alert: () => undefined };
 export const useColorScheme = () => 'light' as const;
 export const useWindowDimensions = () => ({ fontScale: 1, height: 844, scale: 1, width: 390 });
 export const AppState = { addEventListener: () => ({ remove: () => undefined }), currentState: 'active' as const };
-export const Animated = { Value: class { constructor(_value: number) {} }, View, spring: () => ({ start: () => undefined }) };
-export const PanResponder = { create: () => ({ panHandlers: {} }) };
+export const AccessibilityInfo = { isReduceMotionEnabled: async () => false, isReduceTransparencyEnabled: async () => false, addEventListener: () => ({ remove: () => undefined }) };
+export const Animated = { Value: class { constructor(public value: number) {} setValue(value: number) { this.value = value; } stopAnimation(callback?: (value: number) => void) { callback?.(this.value); } }, View, spring: () => ({ start: () => undefined }) };
+export const PanResponder = { create: (handlers: Record<string, unknown>) => ({ panHandlers: handlers }) };

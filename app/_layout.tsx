@@ -1,29 +1,30 @@
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Platform } from 'react-native';
-import { usePathname } from 'expo-router';
-import { ScreenActionsProvider, TabActions, supportsTabAccessory } from '@/components/screen-actions';
+import { Platform, View } from 'react-native';
+import { useState } from 'react';
+import { ScreenActionsProvider, supportsTabAccessory } from '@/components/screen-actions';
 
 import { PilloProvider, usePilloContext } from '@/providers/pillo-provider';
 import { useNotificationResponseNavigation } from '@/hooks/use-notification-response-navigation';
-import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
-import { spacing } from '@/theme/tokens';
+import { GlassTabBar } from '@/components/glass-tab-bar';
+import { ManualIntakeSheet } from '@/components/manual-intake-sheet';
 import { usePilloTheme } from '@/theme/use-pillo-theme';
 
 const TabLayout = () => {
   useNotificationResponseNavigation();
-  const pathname = usePathname();
-  const isLargeText = useLargeTextLayout();
-  const { snapshot } = usePilloContext();
+  const [isManualOpen, setManualOpen] = useState(false);
+  const { snapshot, takeMedicationNow, isSaving, status } = usePilloContext();
   const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
   const usesFloatingTabBar = Platform.OS === 'ios' && Number.parseInt(String(Platform.Version), 10) >= 26;
   const contentStyle = {
     backgroundColor: palette.background,
-    paddingBottom: usesFloatingTabBar ? spacing.xxl * 2 : 0
+    paddingBottom: usesFloatingTabBar ? 112 : 0
   };
 
   return (
+    <View style={{ flex: 1, backgroundColor: palette.background }}>
     <NativeTabs
+      hidden={supportsTabAccessory}
       backgroundColor={palette.background}
       blurEffect={isDark ? 'none' : 'systemChromeMaterialLight'}
       disableTransparentOnScrollEdge
@@ -38,7 +39,6 @@ const TabLayout = () => {
       tintColor={palette.primary}
       unstable_nativeProps={{ colorScheme: isDark ? 'dark' : 'light' }}
     >
-      {supportsTabAccessory && !isLargeText && pathname !== "/settings" ? <NativeTabs.BottomAccessory><TabActions /></NativeTabs.BottomAccessory> : null}
       <NativeTabs.Trigger contentStyle={contentStyle} name="index">
         <NativeTabs.Trigger.Label>Сегодня</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon md={{ default: 'home', selected: 'home_filled' }} sf={{ default: 'house', selected: 'house.fill' }} />
@@ -56,6 +56,11 @@ const TabLayout = () => {
         <NativeTabs.Trigger.Icon md="settings" sf={{ default: 'gearshape', selected: 'gearshape.fill' }} />
       </NativeTabs.Trigger>
     </NativeTabs>
+    {supportsTabAccessory && status === 'unlocked' ? <GlassTabBar isDark={isDark} palette={palette}
+      disabled={isSaving || snapshot.medications.length === 0} onManualIntake={() => setManualOpen(true)} /> : null}
+    <ManualIntakeSheet key={isManualOpen ? 'global-manual-open' : 'global-manual-closed'} isDark={isDark}
+      medications={snapshot.medications} onClose={() => setManualOpen(false)} onSave={takeMedicationNow} visible={isManualOpen} />
+    </View>
   );
 };
 

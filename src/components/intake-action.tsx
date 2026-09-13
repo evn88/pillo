@@ -15,6 +15,13 @@ export type IntakeActionProps = {
 
 export const IntakeAction = ({ accessibilityText, disabled: isDisabled = false, isDark, items, onPress, tintColor }: IntakeActionProps) => {
   if (Platform.OS === 'ios') {
+    if (items.length === 0) return <Host colorScheme={isDark ? 'dark' : 'light'} style={styles.button}>
+      <Button label={accessibilityText} systemImage="checkmark" onPress={onPress} modifiers={[
+        buttonStyle(Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glassProminent' : 'borderedProminent'),
+        buttonBorderShape('circle'), controlSize('large'), frame({ width: 44, height: 44 }), labelStyle('iconOnly'),
+        tint(tintColor), foregroundStyle(isDark ? '#343434' : '#FFFFFF'), disabled(isDisabled), accessibilityLabel(accessibilityText)
+      ]} />
+    </Host>;
     return <Host colorScheme={isDark ? 'dark' : 'light'} style={styles.button}>
       <Menu label={accessibilityText} systemImage="checkmark" onPrimaryAction={onPress} modifiers={[
         buttonStyle(Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glassProminent' : 'borderedProminent'),
@@ -31,10 +38,10 @@ export const IntakeAction = ({ accessibilityText, disabled: isDisabled = false, 
     { cancelable: true }
   );
   return <Pressable accessibilityLabel={accessibilityText} accessibilityRole="button"
-    accessibilityHint="Удерживайте для выбора дозы" accessibilityState={{ disabled: isDisabled }}
-    accessibilityActions={[{ name: 'showMenu', label: 'Параметры приёма' }]}
+    accessibilityHint={items.length ? 'Удерживайте для выбора дозы' : undefined} accessibilityState={{ disabled: isDisabled }}
+    accessibilityActions={items.length ? [{ name: 'showMenu', label: 'Параметры приёма' }] : []}
     onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'showMenu') openMenu(); }}
-    disabled={isDisabled} onPress={onPress} onLongPress={openMenu}
+    disabled={isDisabled} onPress={onPress} onLongPress={items.length ? openMenu : undefined}
     style={[styles.button, { backgroundColor: tintColor, opacity: isDisabled ? 0.4 : 1 }]}>
     <AppSymbol name="checkmark" fallback="✓" color={isDark ? '#343434' : '#FFFFFF'} />
   </Pressable>;

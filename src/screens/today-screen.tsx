@@ -1,10 +1,11 @@
 import { AppSymbol } from '@/components/app-symbol';
 import { useState } from 'react';
-import { ScreenActions } from '@/components/screen-actions';
+import { ScreenActions, supportsTabAccessory } from '@/components/screen-actions';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { IntakeAction } from '@/components/intake-action';
+import { SwipeActionsRow } from '@/components/swipe-actions-row';
 import { HistorySheet } from '@/components/history-sheet';
 import { LegacyStockReturnSheet } from '@/components/legacy-stock-return-sheet';
 import { ManualIntakeSheet } from '@/components/manual-intake-sheet';
@@ -13,7 +14,7 @@ import { ActionButton, Surface } from '@/components/ui';
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Intake, Medication } from '@/domain/types';
 import { usePilloContext } from '@/providers/pillo-provider';
-import { radii, spacing } from '@/theme/tokens';
+import { colors, radii, spacing } from '@/theme/tokens';
 import { usePilloTheme } from '@/theme/use-pillo-theme';
 
 const formatDose = (value: number): string => `${String(value).replace('.', ',')} ед.`;
@@ -30,7 +31,7 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
   const todayIntakes = snapshot.intakes.filter(intake => intake.localDate === todayKey).sort((a, b) => a.localTime.localeCompare(b.localTime));
   const focusedIntake = focusedIntakeId ? snapshot.intakes.find(intake => intake.id === focusedIntakeId) : undefined;
   const displayedIntakes = focusedIntake && !todayIntakes.some(intake => intake.id === focusedIntake.id) ? [focusedIntake, ...todayIntakes] : todayIntakes;
-  const nextIntake = displayedIntakes.find(intake => intake.status === 'PENDING' && medicationById.has(intake.medicationId));
+
   const lowStock = snapshot.medications.filter(medication => medication.stockUnits <= medication.minThresholdUnits);
 
   const changeStatus = (intake: Intake, status: Intake['status']) => {
@@ -42,9 +43,9 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
   };
 
   const intakeMenu = (intake: Intake) => [
-    { label: 'Изменить дозу…', onPress: () => setDoseIntake(intake) },
-    { label: 'Пропустить приём', onPress: () => changeStatus(intake, 'SKIPPED') },
-    { label: 'Вне расписания…', onPress: () => setManualIntakeOpen(true) }
+    { id: 'dose', label: 'Доза', icon: 'slider.horizontal.3' as const, color: colors.light.primary, onPress: () => setDoseIntake(intake) },
+    { id: 'skip', label: 'Пропустить', icon: 'forward.end' as const, color: colors.light.textMuted, onPress: () => changeStatus(intake, 'SKIPPED') },
+    { id: 'manual', label: 'Вручную', icon: 'plus' as const, color: colors.light.success, onPress: () => setManualIntakeOpen(true) }
   ];
 
   return (
@@ -52,6 +53,7 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
       <ScrollView contentContainerStyle={styles.screenContent} contentInsetAdjustmentBehavior="automatic">
         <View style={styles.headingRow}>
           <Text accessibilityRole="header" maxFontSizeMultiplier={1.5} style={[styles.eyebrow, { color: palette.text }]}>Сегодня</Text>
+          {!supportsTabAccessory ? <ActionButton compact label="Приём" onPress={() => setManualIntakeOpen(true)} disabled={isSaving || snapshot.medications.length === 0} palette={palette} /> : null}
           <ActionButton compact label="История" onPress={() => setHistoryOpen(true)} palette={palette} tone="secondary" />
         </View>
         <View style={styles.singleColumn}>
@@ -62,7 +64,7 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
                 const isLowStock = medication ? medication.stockUnits <= medication.minThresholdUnits : false;
                 const hasStockDiscrepancy = intake.status === 'PENDING' && medication ? medication.stockUnits < intake.doseUnits : false;
                 const isFocused = focusedIntake?.id === intake.id;
-                return <Surface key={intake.id} palette={palette} style={isFocused ? { borderColor: palette.primary, borderWidth: 2 } : isLowStock ? { borderColor: palette.warning } : undefined}>
+                const card = <Surface key={intake.id} palette={palette} style={isFocused ? { borderColor: palette.primary, borderWidth: 2 } : isLowStock ? { borderColor: palette.warning } : undefined}>
                   <View style={styles.cardHeader}>
                     {!isLargeText ? <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} /></View> : null}
                     <Pressable accessibilityRole={intake.status === 'PENDING' ? 'button' : undefined}
@@ -75,33 +77,27 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
                     </Pressable>
                     {intake.status === 'PENDING' ? <IntakeAction
                       accessibilityText={`Принять ${medication?.name ?? 'препарат'} в дозе ${formatDose(intake.doseUnits)}`}
-                      disabled={isSaving || !medication} isDark={isDark} items={intakeMenu(intake)}
+                      disabled={isSaving || !medication} isDark={isDark} items={[]}
                       onPress={() => void takeScheduledIntake(intake.id, intake.doseUnits)} tintColor={palette.primary}
                     /> : null}
                   </View>
                   {isLowStock || hasStockDiscrepancy ? <View style={[styles.stockWarning, { backgroundColor: palette.warningSoft }]}><Text accessibilityRole={hasStockDiscrepancy ? 'alert' : undefined} style={[styles.stockWarningText, { color: palette.warning }]}>{hasStockDiscrepancy ? `Учётный запас меньше дозы: ${medication?.stockUnits ?? 0} из ${intake.doseUnits} ед. При отметке остаток станет 0 — проверьте фактический запас.` : `Запас подходит к концу · осталось ${medication?.stockUnits ?? 0} ед.`}</Text></View> : null}
                   {intake.status !== 'PENDING' ? <View style={styles.cardActions}><ActionButton compact disabled={isSaving} label="Отменить отметку" onPress={() => changeStatus(intake, 'PENDING')} palette={palette} tone="secondary" /></View> : null}
                 </Surface>;
+                return intake.status === 'PENDING' ? <SwipeActionsRow key={intake.id}
+                  actions={intakeMenu(intake)} backgroundColor={palette.surface} disabled={isSaving || !medication}
+                  label={`${medication?.name ?? intake.medicationName}, ${intake.localTime}, ${formatDose(intake.doseUnits)}`}
+                  onActivate={() => void takeScheduledIntake(intake.id, intake.doseUnits)}>{card}</SwipeActionsRow> : card;
               })}</View>
             )}
           </View>
           {lowStock.length ? <View style={styles.secondaryColumn}><Text style={[styles.columnTitle, { color: palette.text }]}>Требует внимания</Text>{lowStock.map(medication => <LowStockCard key={medication.id} medication={medication} palette={palette} />)}</View> : null}
         </View>
 
-      {nextIntake ? <Text style={[styles.gestureHint, { color: palette.textMuted }]}>Нажмите ✓, чтобы отметить приём. Удерживайте, чтобы изменить дозу или пропустить.</Text> : null}
+      {displayedIntakes.some(intake => intake.status === 'PENDING') ? <Text style={[styles.gestureHint, { color: palette.textMuted }]}>Смахните приём влево, чтобы изменить дозу или пропустить.</Text> : null}
       </ScrollView>
-      <ScreenActions route="/" actions={[nextIntake ? {
-        label: `${medicationById.get(nextIntake.medicationId)?.name} · ${formatDose(nextIntake.doseUnits)}`,
-        detail: `${nextIntake.localTime} · Удерживайте ✓ для выбора дозы`,
-        onPress: () => void takeScheduledIntake(nextIntake.id, nextIntake.doseUnits),
-        onDetails: () => setDoseIntake(nextIntake),
-        disabled: isSaving,
-        menuItems: intakeMenu(nextIntake)
-      } : {
-        label: 'Отметить приём', detail: 'Вне расписания',
-        onPress: () => setManualIntakeOpen(true), onDetails: () => setManualIntakeOpen(true),
-        disabled: isSaving || snapshot.medications.length === 0,
-        menuItems: [{ label: 'Выбрать препарат и дозу…', onPress: () => setManualIntakeOpen(true) }]
+      <ScreenActions route="/" inlineFallback={false} actions={[{
+        label: 'Отметить приём', onPress: () => setManualIntakeOpen(true), disabled: isSaving || snapshot.medications.length === 0
       }]} />
       <ManualIntakeSheet isDark={isDark} key={isManualIntakeOpen ? 'manual-open:select' : 'manual-closed'} medications={snapshot.medications} onClose={() => setManualIntakeOpen(false)} onSave={takeMedicationNow} visible={isManualIntakeOpen} />
       {doseIntake && medicationById.get(doseIntake.medicationId) ? <ScheduledIntakeSheet
