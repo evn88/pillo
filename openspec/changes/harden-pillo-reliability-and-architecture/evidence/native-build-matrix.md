@@ -48,6 +48,23 @@ npx eas-cli build --platform android --profile production
 
 Record the commit SHA, SDK/OS/device, signing profile identifier (without secrets), install result, and the output artifact checksum. Update from a v1 fixture with persisted history, relaunch after installation, and test recovery before declaring the release path accepted.
 
+## Local iOS compile-only evidence
+
+On 2026-09-13, the ignored `ios/` project was regenerated from the current Expo SDK 57 dependency graph with `npx expo prebuild --clean --platform ios`. CocoaPods installed 98 pods and did not autolink the stale `RNWorklets` pod that had existed in an earlier generated project.
+
+The following unsigned compile-only command completed with `** BUILD SUCCEEDED **` for the generic iPhoneOS arm64 destination:
+
+```bash
+SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk \
+  xcodebuild -workspace ios/Pillo.xcworkspace -scheme Pillo \
+  -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+  CODE_SIGNING_ALLOWED=NO build
+```
+
+The host had Xcode 26.6 and CocoaPods 1.17.0. The `SDKROOT` override was local to the commands: without it, the stub-framework script selected an incompatible Command Line Tools macOS 27.0 SDK and failed before Pod installation. It is a workstation workaround, not an application setting.
+
+This evidence proves that the regenerated native dependency graph compiles. It has no signing profile, install, physical device, migration fixture, or release artifact checksum; it therefore does not close device or release acceptance.
+
 ## Not yet evidenced
 
-No device, signing credentials, generated native project, or release artifact was available in this workspace on this date. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
+The iOS project is generated locally and ignored by Git; no Android native project, Android SDK/adb, device, signing credentials, installation, or release artifact was available in this workspace. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
