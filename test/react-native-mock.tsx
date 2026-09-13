@@ -28,5 +28,5 @@ export const Alert = { alert: () => undefined };
 export const useColorScheme = () => 'light' as const;
 export const useWindowDimensions = () => ({ fontScale: 1, height: 844, scale: 1, width: 390 });
 export const AppState = { addEventListener: () => ({ remove: () => undefined }), currentState: 'active' as const };
-export const Animated = { Value: class { constructor(_value: number) {} }, spring: () => ({ start: () => undefined }) };
+export const Animated = { Value: class { constructor(_value: number) {} }, View, spring: () => ({ start: () => undefined }) };
 export const PanResponder = { create: () => ({ panHandlers: {} }) };

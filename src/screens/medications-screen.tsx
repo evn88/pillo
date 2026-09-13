@@ -27,7 +27,7 @@ export const MedicationsScreen = () => {
 
   return (
     <View style={styles.screenRoot}>
-      <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]}>
+      <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]} contentInsetAdjustmentBehavior="automatic">
         <Text style={[styles.eyebrow, { color: palette.textMuted }]}>МОИ ПРЕПАРАТЫ</Text>
         {snapshot.medications.length === 0 ? (
           <Surface palette={palette} style={styles.emptySurface}><Text style={styles.emptyIcon}>＋</Text><Text style={[styles.emptyTitle, { color: palette.text }]}>Список пока пуст</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>Добавьте первый препарат, затем настройте расписание.</Text></Surface>
@@ -38,7 +38,7 @@ export const MedicationsScreen = () => {
             const progress = Math.min(100, Math.round((medication.stockUnits / packageSize) * 100));
 
             return (
-              <SwipeableCard deleteColor={palette.danger} key={medication.id} onDelete={() => Alert.alert('Удалить препарат?', 'Расписание и история этого препарата тоже будут удалены.', [{ text: 'Отмена', style: 'cancel' }, { text: 'Удалить', style: 'destructive', onPress: () => void deleteMedication(medication.id) }])} onPress={() => { setEditingMedication(medication); setMedicationFormOpen(true); }} style={styles.gridCardContainer}>
+              <SwipeableCard accessibilityLabel={`Изменить препарат ${medication.name}`} deleteColor={palette.danger} key={medication.id} onDelete={() => Alert.alert('Удалить препарат?', 'Расписание и история этого препарата тоже будут удалены.', [{ text: 'Отмена', style: 'cancel' }, { text: 'Удалить', style: 'destructive', onPress: () => void deleteMedication(medication.id) }])} onPress={() => { setEditingMedication(medication); setMedicationFormOpen(true); }} style={styles.gridCardContainer}>
                 <Surface palette={palette} style={[styles.gridCard, isLowStock ? { borderColor: palette.warning } : undefined]}>
                   <View style={styles.cardHeader}><View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><Text style={[styles.medicationGlyphText, { color: palette.primary }]}>✦</Text></View><View style={styles.cardHeaderCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || 'Без дозировки'} · {medication.form}</Text></View></View>
                   <View style={styles.stockRow}><Text style={[styles.stockNumber, { color: palette.text }]}>{medication.stockUnits}</Text><Text style={[styles.stockUnit, { color: palette.textMuted }]}>ед. в наличии</Text><View style={[styles.stockBadge, { backgroundColor: isLowStock ? palette.warningSoft : palette.successSoft }]}><Text style={{ color: isLowStock ? palette.warning : palette.success, fontWeight: '800' }}>{isLowStock ? 'СКОРО ЗАКОНЧИТСЯ' : 'ЗАПАС ЕСТЬ'}</Text></View></View>
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   screenRoot: { flex: 1 },
   screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: 48, paddingTop: spacing.xl, width: '100%' },
   screenWithFloatingActions: { paddingBottom: 176 },
-  floatingFooter: { bottom: 88, left: 0, padding: spacing.lg, position: 'absolute', right: 0 },
+  floatingFooter: { bottom: 0, left: 0, padding: spacing.lg, position: 'absolute', right: 0 },
   eyebrow: { fontSize: 14, fontWeight: '800', letterSpacing: 2.6, marginHorizontal: spacing.sm },
   emptySurface: { alignItems: 'center', paddingVertical: spacing.xxl },
   emptyIcon: { fontSize: 28, marginBottom: spacing.md },

@@ -21,7 +21,7 @@ export const SettingsScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.screenContent}>
+    <ScrollView contentContainerStyle={styles.screenContent} contentInsetAdjustmentBehavior="automatic">
       {notificationError ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{notificationError}</Text> : null}
       <Text style={[styles.eyebrow, { color: palette.textMuted }]}>УВЕДОМЛЕНИЯ</Text>
       <View style={styles.list}>

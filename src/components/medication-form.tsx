@@ -66,10 +66,10 @@ export const MedicationForm = ({
   return (
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.modal, { backgroundColor: palette.background }]}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
               <Text style={[styles.kicker, { color: palette.primary }]}>ПРЕПАРАТ</Text>

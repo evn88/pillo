@@ -14,6 +14,7 @@ const actionWidth = 92;
 const fullSwipeThreshold = 148;
 
 type SwipeableCardProps = {
+  accessibilityLabel: string;
   children: ReactNode;
   deleteColor: string;
   onDelete: () => void;
@@ -21,7 +22,7 @@ type SwipeableCardProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
+export const SwipeableCard = ({ accessibilityLabel, children, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
   const [translateX] = useState(() => new Animated.Value(0));
   const [panResponder, setPanResponder] = useState<ReturnType<typeof PanResponder.create> | null>(null);
   const currentOffset = useRef(0);
@@ -79,8 +80,10 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style 
   return (
     <View style={[styles.container, style]}>
       <Pressable
+        accessible={false}
         accessibilityLabel="Удалить"
         accessibilityRole="button"
+        importantForAccessibility="no-hide-descendants"
         onPress={deleteCard}
         style={[styles.deleteAction, { backgroundColor: deleteColor }]}
       >
@@ -91,6 +94,7 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style 
         <Pressable
           accessibilityActions={[{ name: 'activate', label: 'Изменить' }, { name: 'delete', label: 'Удалить' }]}
           accessibilityHint="Нажмите для редактирования. Смахните влево для удаления."
+          accessibilityLabel={accessibilityLabel}
           accessibilityRole="button"
           onAccessibilityAction={event => event.nativeEvent.actionName === 'delete' ? deleteCard() : handlePress()}
           onPress={handlePress}

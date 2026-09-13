@@ -45,8 +45,8 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
       presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'}
       visible={visible}
     >
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={[styles.container, { backgroundColor: palette.background }]}>
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: palette.background }]}>
+        <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
               <Text style={[styles.title, { color: palette.text }]}>{initialMedicationId ? 'Принять сейчас' : 'Ручная отметка приёма'}</Text>

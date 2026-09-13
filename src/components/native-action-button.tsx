@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { Button as UniversalButton, Host as UniversalHost } from '@expo/ui';
 import { Button as SwiftUIButton, Host as SwiftUIHost } from '@expo/ui/swift-ui';
 import {
@@ -36,15 +36,11 @@ export const NativeActionButton = ({
   tintColor,
   tone = 'primary'
 }: NativeActionButtonProps) => {
-  const { width } = useWindowDimensions();
-  const buttonWidth = Math.min(width - 64, 720);
   const isDanger = tone === 'danger';
-  const hostStyle = [styles.host, fullWidth && [styles.fullWidthHost, { width: buttonWidth }], fill && styles.fillHost];
-  const buttonFrame = fullWidth
-    ? frame({ width: buttonWidth, height: 56 })
-    : fill
-      ? frame({ maxWidth: 1000, minHeight: 56 })
-      : frame({ minHeight: 56 });
+  const hostStyle = [styles.host, fullWidth && styles.fullWidthHost, fill && styles.fillHost];
+  const buttonFrame = fullWidth || fill
+    ? frame({ maxWidth: 1000, minHeight: 56 })
+    : frame({ minHeight: 56 });
 
   if (Platform.OS === 'ios') {
     return (
@@ -73,8 +69,8 @@ export const NativeActionButton = ({
         disabled={disabled}
         label={systemImage === 'plus' ? `＋  ${label}` : label}
         onPress={onPress}
-        variant="outlined"
-        style={{ ...styles.universalButton, ...(fullWidth ? { width: buttonWidth } : {}) }}
+        variant={tone === 'primary' ? 'filled' : 'outlined'}
+        style={{ ...styles.universalButton, ...(fullWidth ? styles.fullWidthButton : {}) }}
       />
     </UniversalHost>
   );
@@ -115,19 +111,19 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
   }
 
   return (
-    <View accessibilityLabel="История приёма" accessibilityRole="button" style={styles.iconHost}>
-      <UniversalHost colorScheme={isDark ? 'dark' : 'light'} seedColor={tintColor} style={styles.iconHost}>
-        <UniversalButton label="↶" onPress={onPress} style={styles.universalIcon} />
-      </UniversalHost>
-    </View>
+    <UniversalHost colorScheme={isDark ? 'dark' : 'light'} seedColor={tintColor} style={styles.historyHost}>
+      <UniversalButton label="История" onPress={onPress} style={styles.universalHistory} variant="outlined" />
+    </UniversalHost>
   );
 };
 
 const styles = StyleSheet.create({
   host: { height: 60 },
-  fullWidthHost: { alignSelf: 'center' },
-  fillHost: { flex: 1, width: '100%' },
+  fullWidthHost: { alignSelf: 'stretch' },
+  fillHost: { flex: 1 },
   iconHost: { height: 60, width: 60 },
+  historyHost: { height: 60 },
   universalButton: { borderRadius: 999, height: 56 },
-  universalIcon: { borderRadius: 999, height: 56, width: 56 }
+  fullWidthButton: { alignSelf: 'stretch' },
+  universalHistory: { borderRadius: 999, height: 56 }
 });

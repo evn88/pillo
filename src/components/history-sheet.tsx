@@ -59,7 +59,7 @@ export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, o
           <ActionButton label="Готово" onPress={onClose} palette={palette} tone="secondary" />
         </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
           <Text style={{ color: palette.textMuted }}>Покрытие плана: {calendarCoverage.map(item => `${item.from} — ${item.through}`).join('; ') || 'неизвестно'}.</Text>
           {history.total === 0 ? (
             <Surface palette={palette}>

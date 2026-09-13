@@ -55,7 +55,7 @@ export const LegacyStockReturnSheet = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.container, { backgroundColor: palette.background }]}
       >
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
               <Text style={[styles.title, { color: palette.text }]}>Уточните возвращаемый остаток</Text>
