@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, usePathname } from 'expo-router';
-import { Button, Host, HStack, RNHostView } from '@expo/ui/swift-ui';
-import { accessibilityLabel, background, buttonBorderShape, buttonStyle, controlSize, disabled, frame, glassEffect, labelStyle, shapes, tint } from '@expo/ui/swift-ui/modifiers';
+import { Button, Host, HStack, Image, RNHostView } from '@expo/ui/swift-ui';
+import { accessibilityLabel, background, buttonStyle, disabled, frame, glassEffect, shapes } from '@expo/ui/swift-ui/modifiers';
 import { AppSymbol } from './app-symbol';
 import { useScreenPrimaryAction } from './screen-actions';
 import type { PilloPalette } from '@/theme/use-pillo-theme';
@@ -15,6 +15,7 @@ const tabs = [
   { path: '/schedule', label: 'Расписание', icon: 'calendar', selectedIcon: 'calendar' },
   { path: '/settings', label: 'Настройки', icon: 'gearshape', selectedIcon: 'gearshape.fill' }
 ] as const;
+const barHeight = 64;
 
 type Props = { isDark: boolean; palette: PilloPalette; onManualIntake: () => void; disabled: boolean };
 
@@ -30,10 +31,11 @@ export const GlassTabBar = ({ isDark, palette, onManualIntake, disabled: isDisab
   }, []);
   const primaryAction = useScreenPrimaryAction();
   const barWidth = Math.min(width - insets.left - insets.right - spacing.lg * 2, 600);
-  const groupWidth = barWidth - 56 - spacing.md;
+  const showAction = pathname !== '/settings';
+  const groupWidth = showAction ? barWidth - barHeight - spacing.md : barWidth;
   const actionLabel = primaryAction?.label ?? 'Отметить приём';
   return <View pointerEvents="box-none" style={[styles.position, { bottom: Math.max(insets.bottom, spacing.sm) }]}>
-    <Host colorScheme={isDark ? 'dark' : 'light'} style={{ width: barWidth, height: 64 }}>
+    <Host colorScheme={isDark ? 'dark' : 'light'} style={{ width: barWidth, height: barHeight }}>
       <HStack spacing={spacing.md}>
         <HStack modifiers={[
           ...(reduceTransparency ? [background(palette.surface, shapes.capsule())] : [glassEffect({ glass: { variant: 'regular' }, shape: 'capsule' })])
@@ -52,11 +54,13 @@ export const GlassTabBar = ({ isDark, palette, onManualIntake, disabled: isDisab
           </View>
         </RNHostView>
         </HStack>
-        <Button label={actionLabel} systemImage="plus" onPress={primaryAction?.onPress ?? onManualIntake} modifiers={[
-          buttonStyle(reduceTransparency ? 'bordered' : 'glass'), buttonBorderShape('circle'), controlSize('extraLarge'),
-          frame({ width: 56, height: 56 }), labelStyle('iconOnly'), tint(palette.primary),
+        {showAction ? <Button onPress={primaryAction?.onPress ?? onManualIntake} modifiers={[
+          buttonStyle('plain'),
+          ...(reduceTransparency ? [background(palette.surface, shapes.circle())] : [glassEffect({ glass: { variant: 'regular', interactive: true }, shape: 'circle' })]),
           disabled(primaryAction ? Boolean(primaryAction.disabled) : isDisabled), accessibilityLabel(actionLabel)
-        ]} />
+        ]}>
+          <Image systemName="plus" size={26} color={palette.primary} modifiers={[frame({ width: barHeight, height: barHeight })]} />
+        </Button> : null}
       </HStack>
     </Host>
   </View>;
@@ -64,7 +68,7 @@ export const GlassTabBar = ({ isDark, palette, onManualIntake, disabled: isDisab
 
 const styles = StyleSheet.create({
   position: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  tabs: { height: 64, padding: spacing.xs, flexDirection: 'row', alignItems: 'center' },
+  tabs: { height: barHeight, padding: spacing.xs, flexDirection: 'row', alignItems: 'center' },
   tab: { flex: 1, minWidth: 44, minHeight: 52, borderRadius: 28, alignItems: 'center', justifyContent: 'center', gap: 2 },
   label: { fontSize: 10, fontWeight: '600' }
 });

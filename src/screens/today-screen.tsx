@@ -44,8 +44,7 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
 
   const intakeMenu = (intake: Intake) => [
     { id: 'dose', label: 'Доза', icon: 'slider.horizontal.3' as const, color: colors.light.primary, onPress: () => setDoseIntake(intake) },
-    { id: 'skip', label: 'Пропустить', icon: 'forward.end' as const, color: colors.light.textMuted, onPress: () => changeStatus(intake, 'SKIPPED') },
-    { id: 'manual', label: 'Вручную', icon: 'plus' as const, color: colors.light.success, onPress: () => setManualIntakeOpen(true) }
+    { id: 'skip', label: 'Пропустить', icon: 'forward.end' as const, color: colors.light.textMuted, onPress: () => changeStatus(intake, 'SKIPPED') }
   ];
 
   return (
@@ -64,7 +63,7 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
                 const isLowStock = medication ? medication.stockUnits <= medication.minThresholdUnits : false;
                 const hasStockDiscrepancy = intake.status === 'PENDING' && medication ? medication.stockUnits < intake.doseUnits : false;
                 const isFocused = focusedIntake?.id === intake.id;
-                const card = <Surface key={intake.id} palette={palette} style={isFocused ? { borderColor: palette.primary, borderWidth: 2 } : isLowStock ? { borderColor: palette.warning } : undefined}>
+                const card = <Surface key={intake.id} palette={palette} style={[intake.status === 'PENDING' && styles.swipeSurface, isFocused ? { borderColor: palette.primary, borderWidth: 2 } : isLowStock ? { borderColor: palette.warning } : undefined]}>
                   <View style={styles.cardHeader}>
                     {!isLargeText ? <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} /></View> : null}
                     <Pressable accessibilityRole={intake.status === 'PENDING' ? 'button' : undefined}
@@ -119,6 +118,8 @@ const LowStockCard = ({ medication, palette }: { medication: Medication; palette
 };
 
 const styles = StyleSheet.create({
+  // Скругление задаёт внешний SwipeActionsRow: движущаяся часть стыкуется с кнопками без выреза.
+  swipeSurface: { borderRadius: 0, borderWidth: 0 },
   screenRoot: { flex: 1 },
   screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' },
   headingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },

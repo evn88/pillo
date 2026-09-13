@@ -93,6 +93,7 @@ describe('Плановый приём', () => {
     let screen: ReturnType<typeof create>;
     await act(async () => { screen = create(<TodayScreen isLargeText={false} />); });
     await act(async () => {
+      expect(screen!.root.findByType(SwipeActionsRow).props.actions.map((action: { id: string }) => action.id)).toEqual(['dose', 'skip']);
       screen!.root.findByType(SwipeActionsRow).props.actions[0].onPress();
     });
     expect(context.current.takeScheduledIntake).not.toHaveBeenCalled();
