@@ -9,6 +9,7 @@ import { getLocalDateKey } from '@/domain/schedule';
 import type { Intake } from '@/domain/types';
 import { colors } from '@/theme/tokens';
 import { TodayScreen } from '@/screens/today-screen';
+import { ScreenActions } from '@/components/screen-actions';
 
 const context = vi.hoisted(() => ({ current: {} as PilloContextValue }));
 vi.mock('expo-router', () => ({ router: { navigate: vi.fn() } }));
@@ -20,6 +21,7 @@ vi.mock('@/components/legacy-stock-return-sheet', () => ({ LegacyStockReturnShee
 vi.mock('@/components/manual-intake-sheet', () => ({ ManualIntakeSheet: () => null }));
 vi.mock('@/components/scheduled-intake-sheet', () => ({ ScheduledIntakeSheet: ({ intake }: { intake: Intake }) => <Text accessibilityLabel={`Редактор дозы ${intake.id}`} /> }));
 vi.mock('@/components/screen-actions', () => ({ ScreenActions: () => null }));
+vi.mock('@/components/intake-action', () => ({ IntakeAction: ({ accessibilityText, onPress, items }: { accessibilityText: string; onPress: () => void; items: { label: string; onPress: () => void }[] }) => <Pressable accessibilityLabel={accessibilityText} onPress={onPress} onLongPress={items[0]?.onPress} /> }));
 vi.mock('@/components/ui', () => ({
   ActionButton: ({ accessibilityText, label, onPress }: { accessibilityText?: string; label: string; onPress: () => void }) => <Pressable accessibilityLabel={accessibilityText ?? label} onPress={onPress}><Text>{label}</Text></Pressable>,
   Surface: ({ children }: { children: ReactNode }) => <View>{children}</View>
@@ -41,6 +43,33 @@ const createContext = (): PilloContextValue => ({
 });
 
 describe('Плановый приём', () => {
+  it('нижняя кнопка сохраняет ближайший ожидающий приём и переключается после его завершения', async () => {
+    context.current = createContext();
+    const later = { ...intake, id: 'later', localTime: '20:00', doseUnits: 0.25 };
+    context.current.snapshot.intakes = [later, intake];
+    let screen: ReturnType<typeof create>;
+    await act(async () => { screen = create(<TodayScreen isLargeText={false} />); });
+    await act(async () => { screen!.root.findByType(ScreenActions).props.actions[0].onPress(); });
+    expect(context.current.takeScheduledIntake).toHaveBeenLastCalledWith(intake.id, 0.5);
+
+    context.current.snapshot.intakes = [later, { ...intake, status: 'TAKEN' }];
+    await act(async () => { screen!.update(<TodayScreen isLargeText={false} />); });
+    expect(screen!.root.findByType(ScreenActions).props.actions[0].label).toContain('0,25');
+    await act(async () => { screen!.root.findByType(ScreenActions).props.actions[0].onPress(); });
+    expect(context.current.takeScheduledIntake).toHaveBeenLastCalledWith('later', 0.25);
+    await act(async () => { screen!.unmount(); });
+  });
+
+  it('после завершения расписания нижняя кнопка открывает ручной ввод', async () => {
+    context.current = createContext();
+    context.current.snapshot.intakes = [{ ...intake, status: 'TAKEN' }];
+    let screen: ReturnType<typeof create>;
+    await act(async () => { screen = create(<TodayScreen isLargeText={false} />); });
+    expect(screen!.root.findByType(ScreenActions).props.actions[0].label).toBe('Отметить приём');
+    await act(async () => { screen!.root.findByType(ScreenActions).props.actions[0].onPress(); });
+    expect(context.current.takeScheduledIntake).not.toHaveBeenCalled();
+    await act(async () => { screen!.unmount(); });
+  });
   it('одним нажатием сохраняет дозу из расписания', async () => {
     context.current = createContext();
     let screen: ReturnType<typeof create>;
@@ -62,6 +91,17 @@ describe('Плановый приём', () => {
       screen!.root.findByProps({ accessibilityLabel: 'Изменить дозу приёма Препарат' }).props.onPress();
     });
 
+    expect(screen!.root.findByProps({ accessibilityLabel: `Редактор дозы ${intake.id}` })).toBeTruthy();
+  });
+
+  it('удержание открывает изменение дозы без регистрации приёма', async () => {
+    context.current = createContext();
+    let screen: ReturnType<typeof create>;
+    await act(async () => { screen = create(<TodayScreen isLargeText={false} />); });
+    await act(async () => {
+      screen!.root.findByProps({ accessibilityLabel: 'Принять Препарат в дозе 0,5 ед.' }).props.onLongPress();
+    });
+    expect(context.current.takeScheduledIntake).not.toHaveBeenCalled();
     expect(screen!.root.findByProps({ accessibilityLabel: `Редактор дозы ${intake.id}` })).toBeTruthy();
   });
 });

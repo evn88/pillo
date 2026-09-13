@@ -2,14 +2,29 @@ import { act, create } from 'react-test-renderer';
 import { describe, expect, it, vi } from 'vitest';
 import { ScreenActions, ScreenActionsProvider, TabActions } from '../screen-actions';
 import { colors } from '@/theme/tokens';
+import { IntakeAction } from '@/components/intake-action';
 
 const navigation = vi.hoisted(() => ({ pathname: '/', placement: 'regular' }));
 vi.mock('expo-router', () => ({ usePathname: () => navigation.pathname }));
 vi.mock('expo-router/unstable-native-tabs', () => ({ NativeTabs: { BottomAccessory: { usePlacement: () => navigation.placement } } }));
 vi.mock('@/providers/pillo-provider', () => ({ usePilloContext: () => ({ snapshot: { settings: { theme: 'LIGHT' } } }) }));
 vi.mock('@/theme/use-pillo-theme', () => ({ usePilloTheme: () => ({ palette: colors.light }) }));
+vi.mock('@/components/intake-action', () => ({ IntakeAction: () => null }));
 
 describe('Контекстные действия вкладок', () => {
+  it('обновляет действие удержания при смене приёма с той же подписью', async () => {
+    navigation.pathname = '/';
+    const previous = vi.fn();
+    const current = vi.fn();
+    const render = (onPress: () => void) => <ScreenActionsProvider><ScreenActions route="/" actions={[{ label: 'Препарат', onPress, menuItems: [{ label: 'Доза', onPress }] }]} /><TabActions /></ScreenActionsProvider>;
+    let screen: ReturnType<typeof create>;
+    await act(async () => { screen = create(render(previous)); });
+    await act(async () => { screen!.update(render(current)); });
+    await act(async () => { screen!.root.findByType(TabActions).findByType(IntakeAction).props.items[0].onPress(); });
+    expect(current).toHaveBeenCalledOnce();
+    expect(previous).not.toHaveBeenCalled();
+    await act(async () => { screen!.unmount(); });
+  });
   it('вызывает актуальное действие после обновления экрана с той же подписью', async () => {
     const previous = vi.fn();
     const current = vi.fn();
