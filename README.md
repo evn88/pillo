@@ -7,7 +7,7 @@
 - iOS/iPadOS 16.4 и новее: iPhone и iPad;
 - Android 7 (API 24) и новее: телефоны и планшеты.
 
-Интерфейс использует нижнюю навигацию на телефонах и постоянную боковую навигацию с двухколоночной компоновкой на планшетах.
+Интерфейс использует нативную нижнюю навигацию Expo Router; конкретное tablet/split-view поведение подлежит device-приёмке.
 
 ## Хранение и уведомления
 
@@ -39,3 +39,5 @@ npx expo install --check
 Native debug/release build, требования к устройствам и порядок приёмки описаны в [матрице сборок](openspec/changes/harden-pillo-reliability-and-architecture/evidence/native-build-matrix.md). Локальные уведомления проверяйте на физическом устройстве: Expo Go не доказывает production-поведение разрешений и уведомлений.
 
 Архитектура и текущее состояние работ: [передача следующего этапа](openspec/changes/harden-pillo-reliability-and-architecture/handoff.md).
+
+Ранняя web-концепция сохранена отдельно как [исторический документ](pillo-mini-app-description.md) и не описывает текущую реализацию.
