@@ -5,6 +5,7 @@ import { ManualIntakeSheet } from '../manual-intake-sheet';
 import { medication } from '../../domain/__tests__/fixtures';
 
 vi.mock('expo-router', () => ({ router: { navigate: vi.fn() } }));
+vi.mock('../app-symbol', () => ({ AppSymbol: () => null }));
 vi.mock('../native-action-button', () => ({
   NativeActionButton: ({ disabled, label, onPress }: { disabled?: boolean; label: string; onPress: () => void }) => (
     <Pressable accessibilityLabel={label} disabled={disabled} onPress={onPress}><Text>{label}</Text></Pressable>
@@ -28,8 +29,10 @@ describe('Ручной приём', () => {
     const onClose = vi.fn();
     let screen: ReactTestRenderer;
     await act(async () => { screen = create(<ManualIntakeSheet initialMedicationId="m1" isDark={false} medications={medications} onClose={onClose} onSave={onSave} visible />); });
+    await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Выбран препарат Первый препарат. Изменить' }).props.onPress(); });
     await act(async () => { screen!.root.findByProps({ accessibilityLabel: secondLabel }).props.onPress(); });
-    expect(screen!.root.findByProps({ accessibilityLabel: secondLabel }).props.accessibilityState.checked).toBe(true);
+    expect(screen!.root.findByProps({ accessibilityLabel: 'Выбран препарат Другой препарат. Изменить' })).toBeTruthy();
+    expect(screen!.root.findAllByProps({ accessibilityLabel: secondLabel })).toHaveLength(0);
     await act(async () => {
       screen!.root.findByProps({ accessibilityLabel: 'Количество препарата' }).props.onChangeText('0,5');
     });
@@ -45,6 +48,7 @@ describe('Ручной приём', () => {
     let screen: ReactTestRenderer;
     await act(async () => { screen = create(<ManualIntakeSheet isDark medications={medications} onClose={onClose} onSave={onSave} visible />); });
     expect(screen!.root.findByProps({ accessibilityLabel: 'Записать приём' }).props.disabled).toBe(true);
+    await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Выбрать препарат' }).props.onPress(); });
     await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Найти препарат' }).props.onChangeText('ДРУГОЙ'); });
     expect(screen!.root.findAllByProps({ accessibilityLabel: 'Выбрать Первый препарат, 10 мг, таблетка' })).toHaveLength(0);
     await act(async () => { screen!.root.findByProps({ accessibilityLabel: secondLabel }).props.onPress(); });
@@ -52,6 +56,23 @@ describe('Ручной приём', () => {
     await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Закрыть без сохранения' }).props.onPress(); });
     expect(onSave).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledOnce();
+    await act(async () => { screen!.unmount(); });
+  });
+
+  it('фильтрует длинный список в отдельном виртуализированном листе', async () => {
+    const manyMedications = Array.from({ length: 120 }, (_, index) => ({
+      ...medication,
+      id: `m${index}`,
+      name: `Препарат ${index}`,
+      dosage: `${index} мг`
+    }));
+    let screen: ReactTestRenderer;
+    await act(async () => { screen = create(<ManualIntakeSheet isDark={false} medications={manyMedications} onClose={vi.fn()} onSave={vi.fn()} visible />); });
+    await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Выбрать препарат' }).props.onPress(); });
+    expect(screen!.root.findByProps({ accessibilityLabel: 'Список препаратов' })).toBeTruthy();
+    await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Найти препарат' }).props.onChangeText('119 мг'); });
+    expect(screen!.root.findByProps({ accessibilityLabel: 'Выбрать Препарат 119, 119 мг, таблетка' })).toBeTruthy();
+    expect(screen!.root.findAllByProps({ accessibilityLabel: 'Выбрать Препарат 11, 11 мг, таблетка' })).toHaveLength(0);
     await act(async () => { screen!.unmount(); });
   });
 });

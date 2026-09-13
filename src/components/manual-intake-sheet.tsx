@@ -10,6 +10,8 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import type { Medication } from '@/domain/types';
 import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
+import { AppSymbol } from './app-symbol';
+import { MedicationPickerSheet } from './medication-picker-sheet';
 import { ActionButton } from './ui';
 
 type ManualIntakeSheetProps = {
@@ -24,7 +26,7 @@ type ManualIntakeSheetProps = {
 export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, onClose, onSave, visible }: ManualIntakeSheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
   const isLargeText = useLargeTextLayout();
-  const [search, setSearch] = useState('');
+  const [isPickerVisible, setIsPickerVisible] = useState(false);
   const { control, formState: { errors }, handleSubmit } = useForm<ManualIntakeFormValues>({
     defaultValues: { medicationId: initialMedicationId ?? '', dose: '1' },
     mode: 'onBlur',
@@ -34,27 +36,30 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
   const { isPending, error, submit } = useFormCommand();
   const medicationId = useWatch({ control, name: 'medicationId' });
   const dose = useWatch({ control, name: 'dose' });
-  const query = search.trim().toLocaleLowerCase('ru-RU');
-  const filteredMedications = medications.filter(item => `${item.name} ${item.dosage} ${item.form}`.toLocaleLowerCase('ru-RU').includes(query));
   const selectedMedication = medications.find(medication => medication.id === medicationId);
   const previewDose = Number(dose.trim().replace(',', '.'));
   const hasStockDiscrepancy = selectedMedication && Number.isFinite(previewDose) && previewDose > selectedMedication.stockUnits;
 
+  const handleClose = () => {
+    setIsPickerVisible(false);
+    onClose();
+  };
+
   const handleSave = handleSubmit(async values => {
     if (isPending) return;
-    await submit(commandId => onSave(values.medicationId, parseQuantity(values.dose, 'Количество', true), commandId), onClose, JSON.stringify(values));
+    await submit(commandId => onSave(values.medicationId, parseQuantity(values.dose, 'Количество', true), commandId), handleClose, JSON.stringify(values));
   });
 
   return (
     <Modal
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
       presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'}
       visible={visible}
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: palette.background }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Закрыть без сохранения" disabled={isPending} onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Закрыть без сохранения" disabled={isPending} onPress={handleClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
             <Text style={[styles.closeText, { color: palette.textMuted }]}>Закрыть</Text>
           </Pressable>
           <ActionButton
@@ -73,46 +78,46 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
           </View>
 
           <View style={styles.field}>
-            <Text style={[styles.label, { color: palette.text }]}>Какой препарат вы приняли?</Text>
-            <TextInput accessibilityLabel="Найти препарат" placeholder="Название или дозировка" placeholderTextColor={palette.textMuted} value={search} onChangeText={setSearch} autoCorrect={false} clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} selectionColor={palette.primary} style={[styles.search, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }]} />
+            <Text style={[styles.label, { color: palette.text }]}>Препарат</Text>
             <Controller control={control} name="medicationId" render={({ field }) => (
-              <View accessibilityLabel="Препарат" accessibilityRole="radiogroup" style={styles.options}>
-                {filteredMedications.map(medication => {
-                  const selected = medication.id === field.value;
-
-                  return (
-                    <Pressable
-                      accessibilityRole="radio"
-                      accessibilityLabel={`Выбрать ${medication.name}, ${medication.dosage}, ${medication.form}`}
-                      accessibilityState={{ checked: selected }}
-                      key={medication.id}
-                      disabled={isPending}
-                      onPress={() => field.onChange(medication.id)}
-                      style={({ pressed }) => [
-                        styles.option,
-                        {
-                          backgroundColor: selected ? palette.primarySoft : palette.surface,
-                          borderColor: selected ? palette.primary : palette.border
-                        },
-                        pressed && styles.pressed
-                      ]}
-                    >
-                      <View style={[styles.radio, { borderColor: selected ? palette.primary : palette.textMuted }]}>{selected ? <View style={[styles.radioDot, { backgroundColor: palette.primary }]} /> : null}</View>
-                      <View style={styles.optionCopy}>
-                      <Text style={[styles.optionText, { color: selected ? palette.primary : palette.text }]}>{medication.name}</Text>
-                      <Text style={[styles.optionMeta, { color: palette.textMuted }]}>{[medication.dosage, medication.form].filter(Boolean).join(' · ')}</Text>
-                      {selected ? <Text style={[styles.optionMeta, { color: palette.primary }]}>Выбрано</Text> : null}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <>
+                <Pressable
+                  accessibilityLabel={selectedMedication ? `Выбран препарат ${selectedMedication.name}. Изменить` : 'Выбрать препарат'}
+                  accessibilityRole="button"
+                  disabled={isPending}
+                  onPress={() => setIsPickerVisible(true)}
+                  style={({ pressed }) => [
+                    styles.medicationField,
+                    { backgroundColor: palette.surface, borderColor: errors.medicationId ? palette.danger : palette.border },
+                    pressed && styles.pressed
+                  ]}
+                >
+                  <View style={[styles.medicationIcon, { backgroundColor: palette.primarySoft }]}>
+                    <AppSymbol color={palette.primary} fallback="Rx" name="pill.fill" />
+                  </View>
+                  <View style={styles.medicationCopy}>
+                    <Text numberOfLines={2} style={[styles.medicationName, { color: selectedMedication ? palette.text : palette.textMuted }]}>{selectedMedication?.name ?? 'Выбрать препарат'}</Text>
+                    {selectedMedication ? <Text numberOfLines={1} style={[styles.medicationMeta, { color: palette.textMuted }]}>{[selectedMedication.dosage, selectedMedication.form].filter(Boolean).join(' · ')}</Text> : null}
+                  </View>
+                  <Text style={[styles.changeLabel, { color: palette.primary }]}>{selectedMedication ? 'Изменить' : 'Выбрать'}</Text>
+                </Pressable>
+                <MedicationPickerSheet
+                  isDark={isDark}
+                  medications={medications}
+                  onClose={() => setIsPickerVisible(false)}
+                  onOpenMedications={() => { setIsPickerVisible(false); onClose(); router.navigate('/medications'); }}
+                  onSelect={field.onChange}
+                  selectedId={field.value}
+                  visible={visible && isPickerVisible}
+                />
+              </>
             )} />
-            {!filteredMedications.length ? <Text style={[styles.hint, { color: palette.textMuted }]}>{medications.length ? 'По этому запросу ничего не найдено. Попробуйте другое название.' : 'Список препаратов пока пуст.'}</Text> : null}
-            <Text style={[styles.hint, { color: palette.textMuted }]}>Здесь показаны добавленные вами препараты. Если нужного нет, добавьте его в разделе «Препараты».</Text>
-            <Pressable accessibilityRole="button" disabled={isPending} onPress={() => { onClose(); router.navigate('/medications'); }} style={styles.closeButton}>
-              <Text style={[styles.link, { color: palette.primary }]}>Открыть препараты</Text>
-            </Pressable>
+            <Text style={[styles.hint, { color: palette.textMuted }]}>{selectedMedication ? 'Нажмите, чтобы выбрать другой препарат.' : 'Выберите препарат из добавленных ранее. Поиск откроется отдельно.'}</Text>
+            {!medications.length ? (
+              <Pressable accessibilityRole="button" disabled={isPending} onPress={() => { handleClose(); router.navigate('/medications'); }} style={styles.closeButton}>
+                <Text style={[styles.link, { color: palette.primary }]}>Открыть препараты</Text>
+              </Pressable>
+            ) : null}
             {errors.medicationId?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.medicationId.message}</Text> : null}
           </View>
 
@@ -124,7 +129,7 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: palette.text }]}>Сколько приняли?</Text>
-            {selectedMedication ? <Text style={[styles.hint, { color: palette.textMuted }]}>Выбран препарат: {selectedMedication.name} · {selectedMedication.dosage || selectedMedication.form}</Text> : <Text style={[styles.hint, { color: palette.textMuted }]}>Сначала выберите препарат в списке выше.</Text>}
+            {selectedMedication ? <Text style={[styles.hint, { color: palette.textMuted }]}>Для препарата: {selectedMedication.name} · {selectedMedication.dosage || selectedMedication.form}</Text> : <Text style={[styles.hint, { color: palette.textMuted }]}>Сначала выберите препарат.</Text>}
             <Controller control={control} name="dose" render={({ field }) => (
               <TextInput
                 accessibilityHint={errors.dose?.message}
@@ -162,17 +167,15 @@ const styles = StyleSheet.create({
   field: { gap: spacing.md },
   fieldError: { fontSize: 13, lineHeight: 18 },
   label: { fontSize: 16, fontWeight: '700' },
-  options: { gap: spacing.sm },
   closeButton: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.sm },
   closeText: { fontSize: 17 },
   link: { fontSize: 15, fontWeight: '600' },
-  search: { borderRadius: radii.md, borderWidth: 1, fontSize: 17, minHeight: 48, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 12, height: 12, borderRadius: 6 },
-  optionCopy: { flex: 1 },
-  option: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, borderRadius: radii.md, borderWidth: 1, minHeight: 64, padding: spacing.lg },
-  optionText: { fontSize: 16, fontWeight: '700' },
-  optionMeta: { fontSize: 13, marginTop: spacing.xs },
+  medicationField: { alignItems: 'center', borderRadius: radii.md, borderWidth: 1, flexDirection: 'row', gap: spacing.md, minHeight: 72, padding: spacing.md },
+  medicationIcon: { alignItems: 'center', borderRadius: radii.md, height: 44, justifyContent: 'center', width: 44 },
+  medicationCopy: { flex: 1, gap: spacing.xs },
+  medicationName: { fontSize: 17, fontWeight: '700', lineHeight: 22 },
+  medicationMeta: { fontSize: 13, lineHeight: 18 },
+  changeLabel: { fontSize: 15, fontWeight: '700' },
   input: { borderRadius: radii.md, borderWidth: 1, fontSize: 18, minHeight: 56, paddingHorizontal: spacing.lg },
   hint: { fontSize: 13, lineHeight: 19 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'flex-end' },

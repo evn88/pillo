@@ -1,4 +1,4 @@
-import { forwardRef, type ComponentProps, type ReactNode } from 'react';
+import { forwardRef, Fragment, type ComponentProps, type ReactNode } from 'react';
 
 type NativeProps = ComponentProps<'div'> & {
   children?: ReactNode;
@@ -17,7 +17,10 @@ export const ScrollView = createHost('ScrollView');
 export const KeyboardAvoidingView = createHost('KeyboardAvoidingView');
 export const Pressable = createHost('Pressable');
 export const TextInput = createHost('TextInput');
-export const Modal = createHost('Modal');
+export const Modal = ({ children, visible = true }: { children?: ReactNode; visible?: boolean }) => visible ? <div data-native-component="Modal">{children}</div> : null;
+export const FlatList = <Item,>({ data, keyExtractor, ListEmptyComponent, renderItem }: { data: Item[]; keyExtractor?: (item: Item, index: number) => string; ListEmptyComponent?: ReactNode; renderItem: (info: { index: number; item: Item }) => ReactNode }) => (
+  <div data-native-component="FlatList">{data.length ? data.map((item, index) => <Fragment key={keyExtractor?.(item, index) ?? index}>{renderItem({ index, item })}</Fragment>) : ListEmptyComponent}</div>
+);
 export const Switch = createHost('Switch');
 export const ActivityIndicator = createHost('ActivityIndicator');
 export const Image = createHost('Image');
