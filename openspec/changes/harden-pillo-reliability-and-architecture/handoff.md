@@ -49,7 +49,7 @@
 ## Оставшаяся приёмка
 
 1. **4.1 и 4.7.** На iOS и Android проверить capacity/coverage уведомлений: начало и окончание курса, один пропуск, DST, 10 событий в день 35 дней без запуска, offline, reboot, force-stop, энергосбережение и отзыв permission. Если 60 DATE-событий не дают продуктовый сценарий, только тогда выбирать recurring triggers или маленький Swift/Kotlin adapter.
-2. **5.3–5.6.** iPhone 17 Pro iOS 26.5 Simulator Release уже покрывает четыре tabs, accessibility tree, max Dynamic Type и portrait/landscape для Today/Settings. На реальных small phone/tablet пройти VoiceOver/TalkBack, keyboard, split view, Android Back и light/dark; forms и 10 000-event release profile остаются обязательными.
+2. **5.3–5.6.** iPhone 17 Pro iOS 26.5 Simulator Release уже покрывает четыре tabs, доступность экранных действий над floating tab bar, accessibility tree, max Dynamic Type и portrait/landscape. На реальных small phone/tablet пройти VoiceOver/TalkBack, keyboard, split view, Android Back и light/dark; полный набор forms и 10 000-event release profile остаются обязательными.
 3. **6.1.** Simulator подтвердил exclusion xattr для iOS SQLite/WAL/SHM после записи. На физическом устройстве всё ещё нужны Android/iOS cloud backup и device-to-device transfer/restore. Android manifest уже имеет `allowBackup=false`.
 4. **7.2–7.3.** Создать подписанные release builds, установить и обновить v1 → v2 с историей, проверить recovery/restart и заполнить матрицу минимальных/актуальных ОС. В текущем workspace нет Android SDK/adb и физического устройства; unsigned iOS Simulator Release install/launch уже подтверждён.
 

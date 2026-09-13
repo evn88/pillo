@@ -27,7 +27,7 @@ export const MedicationsScreen = ({ isLargeText }: { isLargeText: boolean }) => 
 
   return (
     <View style={styles.screenRoot}>
-      <ScrollView contentContainerStyle={[styles.screenContent, !isLargeText && styles.screenWithFloatingActions]} contentInsetAdjustmentBehavior="automatic">
+      <ScrollView contentContainerStyle={styles.screenContent} contentInsetAdjustmentBehavior="automatic">
         <Text style={[styles.eyebrow, { color: palette.textMuted }]}>МОИ ПРЕПАРАТЫ</Text>
         {snapshot.medications.length === 0 ? (
           <Surface palette={palette} style={styles.emptySurface}><Text style={styles.emptyIcon}>＋</Text><Text style={[styles.emptyTitle, { color: palette.text }]}>Список пока пуст</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>Добавьте первый препарат, затем настройте расписание.</Text></Surface>
@@ -49,9 +49,8 @@ export const MedicationsScreen = ({ isLargeText }: { isLargeText: boolean }) => 
             );
           })}</View>
         )}
-        {isLargeText ? <View style={styles.inlineFooter}><NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={openNewMedication} tintColor={palette.primary} /></View> : null}
+        <View style={styles.inlineFooter}><NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={openNewMedication} tintColor={palette.primary} /></View>
       </ScrollView>
-      {!isLargeText ? <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}><NativePrimaryButton isDark={isDark} label="Добавить препарат" onPress={openNewMedication} tintColor={palette.primary} /></View> : null}
       {isMedicationFormOpen ? <MedicationForm isDark={isDark} key={editingMedication?.id ?? 'new-medication'} medication={editingMedication} newId={newMedicationId} onClose={() => setMedicationFormOpen(false)} onSave={saveMedication} visible /> : null}
       <ManualIntakeSheet initialMedicationId={quickIntakeMedication?.id} isDark={isDark} key={quickIntakeMedication ? `manual-open:${quickIntakeMedication.id}` : 'manual-closed'} medications={snapshot.medications} onClose={() => setQuickIntakeMedication(null)} onSave={takeMedicationNow} visible={quickIntakeMedication !== null} />
     </View>
@@ -61,8 +60,6 @@ export const MedicationsScreen = ({ isLargeText }: { isLargeText: boolean }) => 
 const styles = StyleSheet.create({
   screenRoot: { flex: 1 },
   screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' },
-  screenWithFloatingActions: { paddingBottom: 176 },
-  floatingFooter: { bottom: 0, left: 0, padding: spacing.lg, position: 'absolute', right: 0 },
   inlineFooter: { marginTop: spacing.md },
   eyebrow: { fontSize: 14, fontWeight: '800', letterSpacing: 2.6, marginHorizontal: spacing.sm },
   emptySurface: { alignItems: 'center', paddingVertical: spacing.xxl },

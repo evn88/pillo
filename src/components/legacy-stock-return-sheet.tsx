@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import type { Intake, Medication } from '@/domain/types';
+import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, spacing } from '@/theme/tokens';
 import { ActionButton, Surface } from './ui';
 
@@ -33,6 +34,7 @@ export const LegacyStockReturnSheet = ({
   onConfirm
 }: LegacyStockReturnSheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const isLargeText = useLargeTextLayout();
   const [quantity, setQuantity] = useState(String(intake.doseUnits).replace('.', ','));
   const { error, isPending, submit } = useFormCommand();
 
@@ -56,8 +58,8 @@ export const LegacyStockReturnSheet = ({
         style={[styles.container, { backgroundColor: palette.background }]}
       >
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
-          <View style={styles.heading}>
-            <View style={styles.headingCopy}>
+          <View style={[styles.heading, isLargeText && styles.headingLarge]}>
+            <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.title, { color: palette.text }]}>Уточните возвращаемый остаток</Text>
               <Text style={[styles.description, { color: palette.textMuted }]}>Для этой старой записи Pillo не знает, сколько единиц было списано. Укажите фактическое количество, которое нужно вернуть в учётный запас.</Text>
             </View>
@@ -106,7 +108,9 @@ const styles = StyleSheet.create({
   description: { fontSize: 14, lineHeight: 21 },
   field: { gap: spacing.md },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg },
+  headingLarge: { flexDirection: 'column' },
   headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopyLarge: { flex: undefined, width: '100%' },
   input: { borderRadius: 14, borderWidth: 1, fontSize: 18, minHeight: 56, paddingHorizontal: spacing.lg },
   label: { fontSize: 16, fontWeight: '700' },
   medicationName: { fontSize: 18, fontWeight: '700', marginBottom: spacing.sm },

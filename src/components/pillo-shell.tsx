@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { usePilloContext } from '@/providers/pillo-provider';
 import { getLocalDateKey } from '@/domain/schedule';
+import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { radii, spacing } from '@/theme/tokens';
 import { usePilloTheme, type PilloPalette } from '@/theme/use-pillo-theme';
 import { ActionButton } from './ui';
@@ -14,11 +15,11 @@ const appIcon = require('../../assets/icon-pillo.png') as number;
 export type PilloScreenLayout = { isDark: boolean; isLargeText: boolean; isTablet: boolean; palette: PilloPalette };
 
 export const PilloShell = ({ children }: { children: (layout: PilloScreenLayout) => ReactNode }) => {
-  const { fontScale, width } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const { error, isSaving, retry, snapshot, status } = usePilloContext();
   const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
   const isTablet = width >= 768;
-  const isLargeText = fontScale >= 1.4;
+  const isLargeText = useLargeTextLayout();
 
   if (status === 'checking') {
     return (

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import type { Medication } from '@/domain/types';
+import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton } from './ui';
 
@@ -35,6 +36,7 @@ export const MedicationForm = ({
   visible
 }: MedicationFormProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const isLargeText = useLargeTextLayout();
   const medicationId = medication?.id ?? newId;
   const { isPending, error, submit } = useFormCommand();
   const { control, formState: { errors }, handleSubmit } = useForm<MedicationFormValues>({
@@ -70,8 +72,8 @@ export const MedicationForm = ({
         style={[styles.modal, { backgroundColor: palette.background }]}
       >
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
-          <View style={styles.heading}>
-            <View style={styles.headingCopy}>
+          <View style={[styles.heading, isLargeText && styles.headingLarge]}>
+            <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.kicker, { color: palette.primary }]}>ПРЕПАРАТ</Text>
               <Text style={[styles.title, { color: palette.text }]}>
                 {medication ? 'Изменить данные' : 'Добавить препарат'}
@@ -160,7 +162,9 @@ const styles = StyleSheet.create({
   modal: { flex: 1 },
   content: { alignSelf: 'center', gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg, justifyContent: 'space-between' },
+  headingLarge: { flexDirection: 'column' },
   headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopyLarge: { flex: undefined, width: '100%' },
   kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   fields: { gap: spacing.lg },

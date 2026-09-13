@@ -28,7 +28,7 @@ export const ScheduleScreen = ({ isLargeText }: { isLargeText: boolean }) => {
 
   return (
     <View style={styles.screenRoot}>
-      <ScrollView contentContainerStyle={[styles.screenContent, !isLargeText && styles.screenWithFloatingActions]} contentInsetAdjustmentBehavior="automatic">
+      <ScrollView contentContainerStyle={styles.screenContent} contentInsetAdjustmentBehavior="automatic">
         <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ПРАВИЛА ПРИЁМА</Text>
         {snapshot.scheduleRules.length === 0 ? <Surface palette={palette}><Text style={[styles.emptyTitle, { color: palette.text }]}>Расписание не настроено</Text><Text style={[styles.emptyText, { color: palette.textMuted }]}>{snapshot.medications.length ? 'Добавьте время и дни приёма.' : 'Сначала добавьте хотя бы один препарат.'}</Text></Surface> : (
           <View style={styles.list}>{[...snapshot.scheduleRules].sort((a, b) => a.time.localeCompare(b.time)).map(rule => (
@@ -40,9 +40,8 @@ export const ScheduleScreen = ({ isLargeText }: { isLargeText: boolean }) => {
             </SwipeableCard>
           ))}</View>
         )}
-        {isLargeText ? <View style={styles.inlineFooter}><NativePrimaryButton disabled={snapshot.medications.length === 0} isDark={isDark} label="Добавить расписание" onPress={openNewRule} tintColor={palette.primary} /></View> : null}
+        <View style={styles.inlineFooter}><NativePrimaryButton disabled={snapshot.medications.length === 0} isDark={isDark} label="Добавить расписание" onPress={openNewRule} tintColor={palette.primary} /></View>
       </ScrollView>
-      {!isLargeText ? <View style={[styles.floatingFooter, { backgroundColor: palette.background }]}><NativePrimaryButton disabled={snapshot.medications.length === 0} isDark={isDark} label="Добавить расписание" onPress={openNewRule} tintColor={palette.primary} /></View> : null}
       {isScheduleFormOpen ? <ScheduleForm isDark={isDark} key={editingRule?.id ?? 'new-rule'} medications={snapshot.medications} newId={newRuleId} onClose={() => setScheduleFormOpen(false)} onSave={saveScheduleRule} rule={editingRule} visible /> : null}
     </View>
   );
@@ -51,8 +50,6 @@ export const ScheduleScreen = ({ isLargeText }: { isLargeText: boolean }) => {
 const styles = StyleSheet.create({
   screenRoot: { flex: 1 },
   screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.xl, width: '100%' },
-  screenWithFloatingActions: { paddingBottom: 176 },
-  floatingFooter: { bottom: 0, left: 0, padding: spacing.lg, position: 'absolute', right: 0 },
   inlineFooter: { marginTop: spacing.md },
   eyebrow: { fontSize: 14, fontWeight: '800', letterSpacing: 2.6, marginHorizontal: spacing.sm },
   list: { gap: spacing.md },
@@ -69,6 +66,6 @@ const styles = StyleSheet.create({
   statusBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   statusText: { fontSize: 12, fontWeight: '700' },
   daysRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
-  dayBadge: { alignItems: 'center', borderRadius: radii.pill, height: 38, justifyContent: 'center', width: 38 },
+  dayBadge: { alignItems: 'center', borderRadius: radii.pill, justifyContent: 'center', minHeight: 38, minWidth: 38, padding: spacing.sm },
   dayText: { fontSize: 12, fontWeight: '800' }
 });

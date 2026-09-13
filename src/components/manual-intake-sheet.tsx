@@ -6,6 +6,7 @@ import { Controller, useForm, useWatch } from 'react-hook-form';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import type { Medication } from '@/domain/types';
+import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton } from './ui';
 
@@ -20,6 +21,7 @@ type ManualIntakeSheetProps = {
 
 export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, onClose, onSave, visible }: ManualIntakeSheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const isLargeText = useLargeTextLayout();
   const { control, formState: { errors }, handleSubmit } = useForm<ManualIntakeFormValues>({
     defaultValues: { medicationId: initialMedicationId ?? medications[0]?.id ?? '', dose: '1' },
     mode: 'onBlur',
@@ -47,8 +49,8 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: palette.background }]}>
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
-          <View style={styles.heading}>
-            <View style={styles.headingCopy}>
+          <View style={[styles.heading, isLargeText && styles.headingLarge]}>
+            <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.title, { color: palette.text }]}>{initialMedicationId ? 'Принять сейчас' : 'Ручная отметка приёма'}</Text>
               <Text style={[styles.description, { color: palette.textMuted }]}>{initialMedicationId ? 'Укажите фактически принятую дозу. Она будет списана из учётного запаса.' : 'Используйте этот сценарий, если приняли препарат вне расписания.'}</Text>
             </View>
@@ -132,7 +134,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { alignSelf: 'center', gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg },
+  headingLarge: { flexDirection: 'column' },
   headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopyLarge: { flex: undefined, width: '100%' },
   title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.6 },
   description: { fontSize: 15, lineHeight: 21 },
   field: { gap: spacing.md },

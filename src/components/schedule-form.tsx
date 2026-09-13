@@ -6,6 +6,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 
 import { getLocalDateKey } from '@/domain/schedule';
 import type { Medication, ScheduleRule } from '@/domain/types';
+import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton } from './ui';
 
@@ -31,6 +32,7 @@ type ScheduleFormProps = {
 
 export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId, visible }: ScheduleFormProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const isLargeText = useLargeTextLayout();
   const { isPending, error, submit } = useFormCommand();
   const ruleId = rule?.id ?? newId;
   const { control, formState: { errors }, handleSubmit } = useForm<ScheduleFormValues>({
@@ -63,8 +65,8 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modal, { backgroundColor: palette.background }]}>
       <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
-        <View style={styles.heading}>
-          <View style={styles.headingCopy}>
+        <View style={[styles.heading, isLargeText && styles.headingLarge]}>
+          <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
             <Text style={[styles.kicker, { color: palette.primary }]}>РАСПИСАНИЕ</Text>
             <Text style={[styles.title, { color: palette.text }]}>{rule ? 'Изменить приём' : 'Добавить приём'}</Text>
           </View>
@@ -179,7 +181,9 @@ const styles = StyleSheet.create({
   modal: { flex: 1 },
   content: { alignSelf: 'center', flexGrow: 1, gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
   heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg, justifyContent: 'space-between' },
+  headingLarge: { flexDirection: 'column' },
   headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopyLarge: { flex: undefined, width: '100%' },
   kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   field: { gap: spacing.sm },
@@ -191,5 +195,5 @@ const styles = StyleSheet.create({
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   option: { borderRadius: radii.pill, minHeight: 44, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   days: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  day: { alignItems: 'center', borderRadius: radii.pill, height: 44, justifyContent: 'center', width: 44 }
+  day: { alignItems: 'center', borderRadius: radii.pill, justifyContent: 'center', minHeight: 44, minWidth: 44, padding: spacing.sm }
 });

@@ -92,7 +92,7 @@ xcrun simctl install 11183056-54C5-4613-844B-8B33AA336F1F \
 xcrun simctl launch 11183056-54C5-4613-844B-8B33AA336F1F com.vershkov.pillo
 ```
 
-The simulator container contained `pillo.db`, `pillo.db-wal` and `pillo.db-shm`; `xattr -l` reported `com.apple.metadata:com_apple_backup_excludeItem: com.apple.MobileBackup` on all three files. The Release app rendered its four tabs and exposed the medication, schedule, notification switch, retry, history and destructive-clear controls in the accessibility tree. At `accessibility-extra-extra-extra-large`, portrait and landscape layouts used a vertically reflowed header, cards and actions without clipping their accessible controls.
+The simulator container contained `pillo.db`, `pillo.db-wal` and `pillo.db-shm`; `xattr -l` reported `com.apple.metadata:com_apple_backup_excludeItem: com.apple.MobileBackup` on all three files. The Release app rendered its four tabs and exposed the medication, schedule, notification switch, retry, history and destructive-clear controls in the accessibility tree. The Today, Medications and Schedule primary actions were exercised after moving them into each screen's scroll flow; the final Settings destructive action was visually clear of the iOS 26 floating tab bar after scrolling. At `accessibility-extra-extra-extra-large`, portrait and landscape layouts used vertically reflowed headers, cards, history rows and modal headings without clipping their accessible controls.
 
 This is runtime evidence for the iOS file-level adapter and a simulator visual smoke. A simulator has no signed artifact, physical backup service, iCloud/iTunes restore or device-to-device transfer, so it does not close the physical-device portion of tasks 6.1, 7.2 or 7.3.
 

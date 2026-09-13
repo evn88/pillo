@@ -4,6 +4,7 @@ import { Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-nativ
 import type { CalendarCoverage, Intake, Medication } from '@/domain/types';
 import { selectHistoryPage } from '@/domain/history-pagination';
 import { getLocalDateKey } from '@/domain/schedule';
+import { useLargeTextLayout } from '@/hooks/use-large-text-layout';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton, Surface } from './ui';
 
@@ -28,6 +29,7 @@ const formatDate = (dateKey: string): string => {
 
 export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, onClose, visible }: HistorySheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const isLargeText = useLargeTextLayout();
   const [page, setPage] = useState(0);
   const medicationById = new Map(medications.map(medication => [medication.id, medication]));
   const history = useMemo(
@@ -49,8 +51,8 @@ export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, o
       visible={visible}
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, { borderColor: palette.border }]}>
-          <View style={styles.headerCopy}>
+        <View style={[styles.header, isLargeText && styles.headerLarge, { borderColor: palette.border }]}>
+          <View style={[styles.headerCopy, isLargeText && styles.headerCopyLarge]}>
             <Text style={[styles.title, { color: palette.text }]}>История приёма</Text>
             <Text style={[styles.description, { color: palette.textMuted }]}>
               Здесь собраны приёмы по расписанию и ручные отметки. Периоды вне сохранённого покрытия неизвестны.
@@ -82,10 +84,11 @@ export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, o
                         key={intake.id}
                         style={[
                           styles.entry,
+                          isLargeText && styles.entryLarge,
                           index > 0 && { borderColor: palette.border, borderTopWidth: StyleSheet.hairlineWidth }
                         ]}
                       >
-                        <View style={styles.entryCopy}>
+                        <View style={[styles.entryCopy, isLargeText && styles.entryCopyLarge]}>
                           <Text style={[styles.entryTitle, { color: palette.text }]}>
                             {intake.medicationName || medication?.name || 'Удалённый препарат'}
                           </Text>
@@ -125,7 +128,9 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.xl
   },
+  headerLarge: { flexDirection: 'column' },
   headerCopy: { flex: 1, gap: spacing.sm },
+  headerCopyLarge: { flex: undefined, width: '100%' },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.7 },
   description: { fontSize: 15, lineHeight: 21 },
   content: { gap: spacing.xl, padding: spacing.xl, paddingBottom: 48 },
@@ -134,7 +139,9 @@ const styles = StyleSheet.create({
   date: { fontSize: 13, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' },
   entries: { paddingVertical: spacing.xs },
   entry: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.lg },
+  entryLarge: { alignItems: 'flex-start', flexDirection: 'column' },
   entryCopy: { flex: 1 },
+  entryCopyLarge: { flex: undefined, width: '100%' },
   entryTitle: { fontSize: 17, fontWeight: '700' },
   entryMeta: { fontSize: 13, lineHeight: 18, marginTop: spacing.xs },
   badge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
