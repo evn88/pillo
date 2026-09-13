@@ -99,3 +99,11 @@ This is runtime evidence for the iOS file-level adapter and a simulator visual s
 ## Not yet evidenced
 
 The iOS and Android projects are generated locally and ignored by Git. No Android SDK/adb, Android device, signing credentials, physical-device installation or release artifact was available in this workspace. The iOS simulator evidence above does not exercise system notification delivery, physical backup/transfer, signing or Android behaviour. Tasks 4.1, 4.7, 5.4, 5.6, 6.1, 7.2 and 7.3 remain acceptance work.
+
+## UX redesign — 2026-09-13
+
+По запросу пользователя интерфейс всех четырёх разделов, форм и истории согласован с розовой public-палитрой vershkov.com. Нормативные решения и ссылки на Apple HIG/Expo SDK 57: `DESIGN.md` в корне проекта.
+
+В iPhone 17 Pro / iOS 26.5 Simulator Release проверены light/dark, переключение контекстных действий между вкладками, открытие форм препарата/расписания/ручной отметки, история, отмена, системный popup времени и прокрутка к последнему действию настроек. Данные препаратов и приёмов не менялись. При максимальном Dynamic Type системный accessory заменяется прокручиваемыми действиями без ограничения числа строк.
+
+Дополнительные регрессии `screen-actions.test.tsx`: актуальный callback при неизменной подписи, выбор действий по маршруту, disabled и очистка регистрации. TypeScript, ESLint и 73 теста проходят. Android, физические устройства, VoiceOver и полный сценарий программной клавиатуры не подтверждены этим проходом.

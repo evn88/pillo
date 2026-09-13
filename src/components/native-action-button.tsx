@@ -8,6 +8,7 @@ import {
   controlSize,
   disabled as disabledModifier,
   frame,
+  foregroundStyle,
   labelStyle,
   tint
 } from '@expo/ui/swift-ui/modifiers';
@@ -39,8 +40,8 @@ export const NativeActionButton = ({
   const isDanger = tone === 'danger';
   const hostStyle = [styles.host, fullWidth && styles.fullWidthHost, fill && styles.fillHost];
   const buttonFrame = fullWidth || fill
-    ? frame({ maxWidth: 1000, minHeight: 56 })
-    : frame({ minHeight: 56 });
+    ? frame({ maxWidth: 1000, minHeight: 44 })
+    : frame({ minHeight: 44 });
 
   if (Platform.OS === 'ios') {
     return (
@@ -51,12 +52,13 @@ export const NativeActionButton = ({
           role={isDanger ? 'destructive' : undefined}
           systemImage={systemImage}
           modifiers={[
-            buttonStyle('glass'),
+            buttonStyle(tone === 'primary' ? (Number(Platform.Version) >= 26 ? 'glassProminent' : 'borderedProminent') : tone === 'secondary' ? 'bordered' : 'borderless'),
             buttonBorderShape('capsule'),
-            controlSize('extraLarge'),
+            controlSize('large'),
             disabledModifier(disabled),
             buttonFrame,
-            tint(tintColor)
+            tint(tintColor),
+            ...(tone === 'primary' ? [foregroundStyle(isDark ? '#343434' : '#FFFFFF')] : [])
           ]}
         />
       </SwiftUIHost>
@@ -100,7 +102,7 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
             buttonStyle('glass'),
             buttonBorderShape('circle'),
             controlSize('extraLarge'),
-            frame({ width: 56, height: 56 }),
+            frame({ width: 56, height: 48 }),
             labelStyle('iconOnly'),
             accessibilityLabel('История приёма'),
             tint(tintColor)
@@ -118,12 +120,12 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
 };
 
 const styles = StyleSheet.create({
-  host: { minHeight: 60 },
+  host: { minHeight: 48 },
   fullWidthHost: { alignSelf: 'stretch' },
   fillHost: { flex: 1 },
   iconHost: { height: 60, width: 60 },
-  historyHost: { minHeight: 60 },
-  universalButton: { borderRadius: 999, height: 56 },
+  historyHost: { minHeight: 48 },
+  universalButton: { borderRadius: 999, height: 48 },
   fullWidthButton: { alignSelf: 'stretch' },
-  universalHistory: { borderRadius: 999, height: 56 }
+  universalHistory: { borderRadius: 999, height: 48 }
 });

@@ -51,17 +51,10 @@ export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, o
       visible={visible}
     >
       <View style={[styles.container, { backgroundColor: palette.background }]}>
-        <View style={[styles.header, isLargeText && styles.headerLarge, { borderColor: palette.border }]}>
-          <View style={[styles.headerCopy, isLargeText && styles.headerCopyLarge]}>
-            <Text style={[styles.title, { color: palette.text }]}>История приёма</Text>
-            <Text style={[styles.description, { color: palette.textMuted }]}>
-              Здесь собраны приёмы по расписанию и ручные отметки. Периоды вне сохранённого покрытия неизвестны.
-            </Text>
-          </View>
-          <ActionButton label="Готово" onPress={onClose} palette={palette} tone="secondary" />
-        </View>
-
+        <View style={{ alignItems: 'flex-end', paddingHorizontal: spacing.lg }}><ActionButton label="Готово" onPress={onClose} palette={palette} tone="secondary" /></View>
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
+          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>История приёма</Text>
+          <Text style={[styles.description, { color: palette.textMuted }]}>Приёмы по расписанию и ручные отметки. Периоды вне сохранённого плана неизвестны.</Text>
           <Text style={{ color: palette.textMuted }}>Покрытие плана: {calendarCoverage.map(item => `${item.from} — ${item.through}`).join('; ') || 'неизвестно'}.</Text>
           {history.total === 0 ? (
             <Surface palette={palette}>

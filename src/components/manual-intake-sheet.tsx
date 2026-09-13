@@ -48,13 +48,21 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
       visible={visible}
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.container, { backgroundColor: palette.background }]}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
+          <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
+          <ActionButton
+              disabled={isPending}
+              label={isPending ? 'Сохраняем…' : 'Отметить'}
+              onPress={() => void handleSave()}
+              palette={palette}
+            />
+        </View>
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={[styles.heading, isLargeText && styles.headingLarge]}>
             <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.title, { color: palette.text }]}>{initialMedicationId ? 'Принять сейчас' : 'Ручная отметка приёма'}</Text>
               <Text style={[styles.description, { color: palette.textMuted }]}>{initialMedicationId ? 'Укажите фактически принятую дозу. Она будет списана из учётного запаса.' : 'Используйте этот сценарий, если приняли препарат вне расписания.'}</Text>
             </View>
-            <ActionButton label="Закрыть" onPress={onClose} palette={palette} tone="secondary" />
           </View>
 
           <View style={styles.field}>
@@ -115,15 +123,7 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
           </View>
 
           {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
-          <View style={styles.actions}>
-            <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
-            <ActionButton
-              disabled={isPending}
-              label={isPending ? 'Сохраняем…' : 'Отметить вручную'}
-              onPress={() => void handleSave()}
-              palette={palette}
-            />
-          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -133,9 +133,9 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { alignSelf: 'center', gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
-  heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg },
+  heading: { alignItems: 'flex-start', flexDirection: 'column', gap: spacing.lg },
   headingLarge: { flexDirection: 'column' },
-  headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopy: { width: '100%', gap: spacing.sm },
   headingCopyLarge: { flex: undefined, width: '100%' },
   title: { fontSize: 27, fontWeight: '800', letterSpacing: -0.6 },
   description: { fontSize: 15, lineHeight: 21 },

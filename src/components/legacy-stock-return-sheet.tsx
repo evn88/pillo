@@ -57,13 +57,21 @@ export const LegacyStockReturnSheet = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.container, { backgroundColor: palette.background }]}
       >
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
+          <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
+          <ActionButton
+              disabled={isPending}
+              label={isPending ? 'Сохраняем…' : 'Отменить отметку'}
+              onPress={() => void handleConfirm()}
+              palette={palette}
+            />
+        </View>
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={[styles.heading, isLargeText && styles.headingLarge]}>
             <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.title, { color: palette.text }]}>Уточните возвращаемый остаток</Text>
               <Text style={[styles.description, { color: palette.textMuted }]}>Для этой старой записи Pillo не знает, сколько единиц было списано. Укажите фактическое количество, которое нужно вернуть в учётный запас.</Text>
             </View>
-            <ActionButton label="Закрыть" onPress={onClose} palette={palette} tone="secondary" />
           </View>
 
           <Surface palette={palette}>
@@ -86,15 +94,7 @@ export const LegacyStockReturnSheet = ({
           </View>
 
           {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
-          <View style={styles.actions}>
-            <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
-            <ActionButton
-              disabled={isPending}
-              label={isPending ? 'Сохраняем…' : 'Отменить отметку'}
-              onPress={() => void handleConfirm()}
-              palette={palette}
-            />
-          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
   content: { alignSelf: 'center', gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
   description: { fontSize: 14, lineHeight: 21 },
   field: { gap: spacing.md },
-  heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg },
+  heading: { alignItems: 'flex-start', flexDirection: 'column', gap: spacing.lg },
   headingLarge: { flexDirection: 'column' },
-  headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopy: { width: '100%', gap: spacing.sm },
   headingCopyLarge: { flex: undefined, width: '100%' },
   input: { borderRadius: 14, borderWidth: 1, fontSize: 18, minHeight: 56, paddingHorizontal: spacing.lg },
   label: { fontSize: 16, fontWeight: '700' },

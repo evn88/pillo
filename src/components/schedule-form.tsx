@@ -1,3 +1,4 @@
+import { ScheduleDateInput } from './schedule-date-input';
 import type { CommandResult } from '../application/contracts';
 import { scheduleFormResolver, toScheduleRule, type ScheduleFormValues } from '../hooks/form-schema';
 import { useFormCommand } from '../hooks/use-form-command';
@@ -64,13 +65,20 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
   return (
     <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modal, { backgroundColor: palette.background }]}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
+        <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
+        <ActionButton
+          disabled={isPending}
+          label={isPending ? 'Сохраняем…' : 'Сохранить'}
+          onPress={() => void handleSave()}
+          palette={palette}
+        />
+      </View>
       <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
         <View style={[styles.heading, isLargeText && styles.headingLarge]}>
           <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
-            <Text style={[styles.kicker, { color: palette.primary }]}>РАСПИСАНИЕ</Text>
             <Text style={[styles.title, { color: palette.text }]}>{rule ? 'Изменить приём' : 'Добавить приём'}</Text>
           </View>
-          <ActionButton label="Закрыть" onPress={onClose} palette={palette} tone="secondary" />
         </View>
 
         <View style={styles.field}>
@@ -100,9 +108,9 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
 
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
-            <Text style={[styles.label, { color: palette.text }]}>Время, ЧЧ:ММ</Text>
+            <Text style={[styles.label, { color: palette.text }]}>Время</Text>
             <Controller control={control} name="time" render={({ field }) => (
-              <TextInput accessibilityHint={errors.time?.message} accessibilityLabel="Время приёма" keyboardAppearance={isDark ? 'dark' : 'light'} keyboardType="numbers-and-punctuation" onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('time')} value={field.value} />
+              <ScheduleDateInput time isDark={isDark} label="Время приёма" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
             )} />
             {errors.time?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.time.message}</Text> : null}
           </View>
@@ -141,16 +149,16 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
 
         <View style={styles.row}>
           <View style={[styles.field, styles.half]}>
-            <Text style={[styles.label, { color: palette.text }]}>Начало, ГГГГ-ММ-ДД</Text>
+            <Text style={[styles.label, { color: palette.text }]}>Начало курса</Text>
             <Controller control={control} name="startDate" render={({ field }) => (
-              <TextInput accessibilityHint={errors.startDate?.message} accessibilityLabel="Дата начала курса" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('startDate')} value={field.value} />
+              <ScheduleDateInput  isDark={isDark} label="Дата начала курса" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
             )} />
             {errors.startDate?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.startDate.message}</Text> : null}
           </View>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Окончание</Text>
             <Controller control={control} name="endDate" render={({ field }) => (
-              <TextInput accessibilityHint={errors.endDate?.message} accessibilityLabel="Дата окончания курса" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} placeholder="Не ограничено" placeholderTextColor={palette.textMuted} selectionColor={palette.primary} style={inputStyle('endDate')} value={field.value} />
+              <ScheduleDateInput optional isDark={isDark} label="Дата окончания курса" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
             )} />
             {errors.endDate?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.endDate.message}</Text> : null}
           </View>
@@ -165,12 +173,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
         </View>
 
         {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
-        <ActionButton
-          disabled={isPending}
-          label={isPending ? 'Сохраняем…' : 'Сохранить'}
-          onPress={() => void handleSave()}
-          palette={palette}
-        />
+
       </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -180,9 +183,9 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
 const styles = StyleSheet.create({
   modal: { flex: 1 },
   content: { alignSelf: 'center', flexGrow: 1, gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
-  heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg, justifyContent: 'space-between' },
+  heading: { alignItems: 'flex-start', flexDirection: 'column', gap: spacing.lg, justifyContent: 'space-between' },
   headingLarge: { flexDirection: 'column' },
-  headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopy: { width: '100%', gap: spacing.sm },
   headingCopyLarge: { flex: undefined, width: '100%' },
   kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
@@ -194,6 +197,6 @@ const styles = StyleSheet.create({
   half: { flexBasis: 220, flexGrow: 1 },
   options: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   option: { borderRadius: radii.pill, minHeight: 44, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  days: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  days: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   day: { alignItems: 'center', borderRadius: radii.pill, justifyContent: 'center', minHeight: 44, minWidth: 44, padding: spacing.sm }
 });

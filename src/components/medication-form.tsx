@@ -71,15 +71,22 @@ export const MedicationForm = ({
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.modal, { backgroundColor: palette.background }]}
       >
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
+          <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
+          <ActionButton
+            disabled={isPending}
+            label={isPending ? 'Сохраняем…' : 'Сохранить'}
+            onPress={() => void handleSave()}
+            palette={palette}
+          />
+        </View>
         <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled">
           <View style={[styles.heading, isLargeText && styles.headingLarge]}>
             <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
-              <Text style={[styles.kicker, { color: palette.primary }]}>ПРЕПАРАТ</Text>
               <Text style={[styles.title, { color: palette.text }]}>
                 {medication ? 'Изменить данные' : 'Добавить препарат'}
               </Text>
             </View>
-            <ActionButton label="Закрыть" onPress={onClose} palette={palette} tone="secondary" />
           </View>
 
           <View style={styles.fields}>
@@ -146,12 +153,7 @@ export const MedicationForm = ({
           </View>
 
           {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
-          <ActionButton
-            disabled={isPending}
-            label={isPending ? 'Сохраняем…' : 'Сохранить'}
-            onPress={() => void handleSave()}
-            palette={palette}
-          />
+
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -161,9 +163,9 @@ export const MedicationForm = ({
 const styles = StyleSheet.create({
   modal: { flex: 1 },
   content: { alignSelf: 'center', gap: spacing.xl, maxWidth: 680, padding: spacing.xl, width: '100%' },
-  heading: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg, justifyContent: 'space-between' },
+  heading: { alignItems: 'flex-start', flexDirection: 'column', gap: spacing.lg, justifyContent: 'space-between' },
   headingLarge: { flexDirection: 'column' },
-  headingCopy: { flex: 1, gap: spacing.sm },
+  headingCopy: { width: '100%', gap: spacing.sm },
   headingCopyLarge: { flex: undefined, width: '100%' },
   kicker: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
   title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
