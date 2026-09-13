@@ -65,6 +65,7 @@ export const createSqliteRepository = (database: SqlDatabase): PilloRepository =
       if (result.changes !== 1) throw new Error('Данные были изменены другой операцией или отсутствуют. Откройте приложение заново.');
       if (purgeRecovery) await transaction.execAsync('DELETE FROM pillo_recovery');
     });
+    return null;
   },
   close: () => database.closeAsync()
 });

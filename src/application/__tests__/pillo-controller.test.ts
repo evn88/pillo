@@ -5,7 +5,7 @@ import { reconcileCalendar } from '../../domain/calendar';
 import { medication, now, snapshot } from '../../domain/__tests__/fixtures';
 import { createPilloController } from '../pillo-controller';
 import { buildNotificationPlan } from '../notification-plan';
-import type { NotificationGateway, PlannedNotification, PilloRepository } from '../contracts';
+import type { NotificationGateway, PersistenceWarning, PlannedNotification, PilloRepository } from '../contracts';
 
 const deferred = () => {
   let release = () => {};
@@ -16,6 +16,7 @@ const deferred = () => {
 const fixture = () => {
   let saved = createDocument(snapshot);
   let failSave = false;
+  let saveWarning: PersistenceWarning | null = null;
   const jobs = new Map<string, PlannedNotification>();
   const repository: PilloRepository = {
     load: vi.fn(async () => saved),
@@ -23,6 +24,9 @@ const fixture = () => {
       if (failSave) { failSave = false; throw new Error('disk'); }
       if (expected !== saved.revision) throw new Error('revision');
       saved = JSON.parse(JSON.stringify(next)) as PilloDocument;
+      const warning = saveWarning;
+      saveWarning = null;
+      return warning;
     }),
     close: vi.fn(async () => undefined)
   };
@@ -37,7 +41,8 @@ const fixture = () => {
     , dismissDelivered: vi.fn(async () => undefined)
   };
   const controller = createPilloController({ open: async () => repository, notifications: gateway, now: () => now });
-  return { controller, gateway, repository, jobs, saved: () => saved, failNextSave: () => { failSave = true; } };
+  return { controller, gateway, repository, jobs, saved: () => saved, failNextSave: () => { failSave = true; },
+    warnNextSave: () => { saveWarning = { kind: 'backup-protection', message: 'backup warning' }; } };
 };
 
 describe('последовательные команды', () => {
@@ -79,6 +84,18 @@ describe('последовательные команды', () => {
     gate.release();
     expect(await command).toMatchObject({ ok: false });
     expect(vi.mocked(gateway.schedule).mock.calls.length).toBe(calls);
+    await controller.dispose();
+  });
+  it('публикует сохранённые данные и отдельное предупреждение защиты backup', async () => {
+    const { controller, saved, warnNextSave } = fixture();
+    await controller.start(); await controller.whenIdle();
+    warnNextSave();
+
+    await expect(controller.execute('package-with-warning', { type: 'add-package', medicationId: 'm1' })).resolves.toEqual({ ok: true });
+
+    expect(saved().snapshot.medications[0]?.stockUnits).toBe(30.5);
+    expect(controller.getState().snapshot.medications[0]?.stockUnits).toBe(30.5);
+    expect(controller.getState().error).toBe('backup warning');
     await controller.dispose();
   });
   it('показывает bootstrap error, закрывает отказавший handle и позволяет retry', async () => {

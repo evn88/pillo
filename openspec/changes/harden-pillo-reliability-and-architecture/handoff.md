@@ -4,7 +4,7 @@
 
 ## Что завершено
 
-Основное архитектурное ядро реализовано и подключено к существующему UI. В tasks.md закрыты 17 из 41 задач. Остальные задачи открыты, включая частично выполненные. Приложение остаётся Expo / React Native, без сервера, аккаунта и новых зависимостей.
+Основное архитектурное ядро реализовано и подключено к существующему UI. В tasks.md закрыты 33 из 41 задач; восемь оставшихся требуют физического устройства, подписи или системного поведения. Приложение остаётся Expo / React Native, без сервера, аккаунта и новых зависимостей.
 
 | Область | Реализация | Проверка |
 | --- | --- | --- |
@@ -12,7 +12,7 @@
 | Команды | `src/application/pillo-controller.ts`, `src/domain/commands.ts` | Queue, отказ первой записи, повтор command ID, отсутствие optimistic state |
 | React bridge | `src/hooks/use-pillo.ts`, `src/providers/pillo-provider.tsx` | TypeScript/exports; native mount и UI smoke ещё нужны |
 | Валидация | `src/domain/validation.ts`, `document-validation.ts` | Decimal, даты, связи, shape, precision, legacy |
-| SQLite | `src/storage/sqlite-repository.ts`, `vault.native.ts` | Настоящие Node SQLite transactions, rollback, newer-version, missing row, CAS, recovery |
+| SQLite и приватность | `src/storage/sqlite-repository.ts`, `vault.native.ts`, `modules/pillo-data-privacy` | Настоящие Node SQLite transactions, rollback, newer-version, missing row, CAS, recovery; iOS SQLite/WAL/SHM backup exclusion после открытия и записи, native autolinking и unsigned Release compile |
 | Учёт | Stock effect в Intake, команды переходов | 0.5 → take 1 → undo, независимое пополнение, идемпотентность, legacy unknown |
 | Календарь | `src/domain/calendar.ts`, `schedule.ts`, `src/application/calendar-lifecycle.ts` | Изменение будущего плана, история, DST, полночь, foreground, неизвестные интервалы |
 | Уведомления | `src/application/notification-plan.ts`, controller, `src/services/notifications.native.ts` | Fake gateway: частичный отказ, restart, concurrent delete, отказ ACK, denied, take/undo |
@@ -46,48 +46,31 @@
 11. Notification worker один; OS API выполняется вне очереди записи. ACK записывается через тот же writer и проверяет desiredRevision. После отказа следующее обновление сравнивает фактическую очередь со стабильными ID/fingerprint, не выполняя cancel-all.
 12. Временная стратегия — максимум 60 одноразовых уведомлений с честной датой покрытия. Это не доказанная автономность 35 дней и не измеренный лимит каждой платформы. При неизвестном календарном покрытии дата не объявляется подтверждённой. Android exact capability пока `unknown`; iOS quiet/denied отличены. Устаревшие события отменяются даже при denied, новые в таком состоянии не создаются.
 
-## Что сделать следующей модели
+## Оставшаяся приёмка
 
-### Первая группа: завершить пользовательский интерфейс вокруг готовых контрактов
-
-- 0.3 / 2.4: перейти на RHF/schema validation с теми же domain-инвариантами, связать ошибки с полями и добавить RN UI-тесты. Не дублировать правила допустимых доз в новой схеме. UX выбора дозы, предупреждение о расхождении и legacy undo уже реализованы; см. «Следующий UI-инкремент».
-- 4.4: показывать возможность открытия системных Settings после denied, финализировать текст ограниченного режима **до включения**, проверить channel/provisional состояния. Не представлять `exact='unknown'` как точное время.
-- 4.6: добавить notification-response navigation по `intakeId` после bootstrap, для cold/warm start и удалённого события; никакой автоматической TAKEN при обычном нажатии.
-- 5.1–5.3: механически разнести четыре screen из App.tsx, локализовать владение формами, сделать единый theme contract, доступные labels, safe areas, keyboard handling, варианты native buttons. Не менять controller/storage ради разбивки JSX.
-- 5.4: закрытая история уже не монтируется. Остаются ограниченный render/пагинация и release-профиль на 10 000 записей. Не вводить ORM/новый store заранее.
-- 5.5 / 6.3: убрать подтверждённые unused styles/assets, привести README и исторический web-документ к фактическому native-продукту. README частично обновлён для новой очереди и логической очистки, утверждение о планшетном sidebar ещё требует сверки.
-
-### Вторая группа: tooling и готовность платформ
-
-- 0.2: обновить совместимые версии SDK 57, повторить compatibility check и npm audit. В этом этапе версии/lock-файл не менялись. Предыдущие 7 расхождений и 23 dependency findings не объявлены исправленными; `audit fix --force` не применять.
-- 0.3: добавить lint и нужные прямые devDependencies для тестов. Node SQLite-тесты используют установленный Node 22.22.1; `@types/node` пока доступен транзитивно, в тесте явный reference. Не переносить Node SQLite adapter в mobile bundle.
-- 6.1–6.2: применить и проверить backup/transfer policy, продумать recovery UI, завершить очистку **доставленных** уведомлений. Scheduled notifications уже отменяются reconciliation, исходный recovery payload удаляется транзакцией clear-data.
-- 0.4 / 3.5 / 4.7 / 5.6 / 7.2–7.3: настоящие native debug/release builds, установка/обновление v1 → v2, физические iOS/Android, доступность, клавиатура, поворот, минимальные ОС, reboot/permissions/энергосбережение. Не закрывать эти задачи по Node-тестам или export.
-
-### Отдельное решение после проверки устройств
-
-4.1: системные повторения ещё не внедрены. Проверить start/end курса, исключение одного occurrence без отмены следующих, DST и ёмкость очереди. Если продукт требует 10 событий в сутки в течение 35 дней без открытия, текущие 60 DATE-событий недостаточны. Только после spike выбирать recurring triggers или небольшой Swift/Kotlin adapter; не обещать фоновый JS по таймеру и не переписывать приложение целиком.
-
-Это оставшееся исследование может потребовать отдельного архитектурного решения по результатам native-проверки. Остальные перечисленные работы выполняются на уже заданных контрактах.
+1. **4.1 и 4.7.** На iOS и Android проверить capacity/coverage уведомлений: начало и окончание курса, один пропуск, DST, 10 событий в день 35 дней без запуска, offline, reboot, force-stop, энергосбережение и отзыв permission. Если 60 DATE-событий не дают продуктовый сценарий, только тогда выбирать recurring triggers или маленький Swift/Kotlin adapter.
+2. **5.3–5.6.** На реальных small phone/tablet пройти VoiceOver/TalkBack, большой шрифт, keyboard, rotation, split view, Android Back и light/dark. Статические labels/actions, insets, keyboard avoidance, pagination и 10 000 записей уже проверены автоматическими тестами; release profile остаётся обязательным.
+3. **6.1.** После записи данных проверить на устройстве фактическое исключение iOS SQLite/WAL/SHM, Android/iOS cloud backup и device-to-device transfer/restore. Android manifest уже имеет `allowBackup=false`; iOS adapter скомпилирован, но это не заменяет системную проверку.
+4. **7.2–7.3.** Создать подписанные release builds, установить и обновить v1 → v2 с историей, проверить recovery/restart и заполнить матрицу минимальных/актуальных ОС. Установленных устройств или Android SDK/adb в текущем workspace нет; CoreSimulatorService недоступен.
 
 ## Проверки этого этапа
 
 | Проверка | Результат |
 | --- | --- |
-| `npm test` | PASS, 55 тестов / 6 файлов, exit 0 |
+| `npm test` | PASS, 71 тест / 12 файлов, exit 0 |
 | `npm run type-check` | PASS, exit 0 |
-| `CI=1 EXPO_NO_TELEMETRY=1 EXPO_OFFLINE=1 npx --no-install expo export --platform ios --output-dir /private/tmp/pillo-architecture-export-ios --max-workers 2` | PASS, 1415 модулей, Hermes около 3 MB |
-| Аналогичный export Android, `/private/tmp/pillo-architecture-export-android` | PASS, 1500 модулей, Hermes около 3.2 MB |
+| `npm run lint` | PASS, exit 0 |
+| `CI=1 EXPO_NO_TELEMETRY=1 npx expo export --platform all` | PASS, iOS Hermes около 3 MB, Android около 3.2 MB |
+| `npx expo-modules-autolinking resolve --platform ios` | PASS, `PilloDataPrivacy` resolved |
+| `npx expo prebuild --clean --platform ios` + unsigned generic-device Release build | PASS, `PilloDataPrivacy` Pod и Swift-модуль скомпилированы |
 | SQLite migration/rollback | PASS на настоящем SQLite через `node:sqlite`, не на Expo native SQLite |
 | Import boundaries | PASS в составе тестов |
 | `git diff --check` | PASS |
 | `openspec validate harden-pillo-reliability-and-architecture --strict` | PASS, exit 0 |
-| Lint / native build / device smoke / OS backup / реальные долгие уведомления | НЕ ВЫПОЛНЕНЫ |
+| Device smoke / OS backup-transfer / реальные долгие уведомления / signed install | НЕ ВЫПОЛНЕНЫ |
 
 Предупреждение Node об экспериментальном SQLite API и Metro о NO_COLOR не приводят к отказу проверок. Native rendering, Expo SQLite bridge и доставка системой не доказаны этими тестами.
 
 ## Рабочее дерево
 
-Неотслеживаемые `.agents/`, `.claude/`, `pillo-mini-app-description.md`, `skills-lock.json` существовали до этапа и не изменялись. Пакет OpenSpec также ещё не закоммичен. Новые файлы application/domain/storage/tests должны попасть в будущий коммит вместе с изменёнными вызывающими компонентами; старый `vault-contract.ts` удалён, его заменил `PilloRepository`.
-
-Следующее действие: завершить первую группу UI/tooling на текущем ядре, затем пройти native-приёмку. Переключение модели не требует сброса или переноса рабочего дерева.
+Все изменения архитектурного и UI этапов уже закоммичены. Следующее действие — выделить физические устройства и signing для оставшейся native-приёмки; переключение модели не требует сброса или переноса рабочего дерева.

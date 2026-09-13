@@ -67,7 +67,7 @@
 
 ## 6. Приватность и документация — A23, A24
 
-- [ ] 6.1 Android `allowBackup=false` подтверждён в сгенерированном manifest. Для iOS нужен path-level native adapter для SQLite и реальный transfer/restore; до этого local-only тексты не обещают исключение iOS из OS backup. Доказательство: `evidence/native-build-matrix.md`.
+- [ ] 6.1 Android `allowBackup=false` подтверждён в сгенерированном manifest. iOS path-level adapter повторно исключает SQLite/WAL/SHM при открытии и после записи; его CNG/autolinking и unsigned Release compile подтверждены. Нужен реальный Android/iOS backup/transfer restore на устройстве. Доказательство: `evidence/native-build-matrix.md`.
 - [x] 6.2 Согласовать clear-data и recovery: прикладные записи, собственные backup-файлы, scheduled/delivered notifications, повторный запуск и retry при отказе OS API. `clear-data` атомарно очищает документ/recovery, reconciliation отменяет scheduled события, а adapter отдельно dismisses delivered notifications; отказ OS API виден и повторная очистка повторяет попытку.
 - [x] 6.3 Обновить README под реальное приложение, поддерживаемые ОС, сборки, ограничения покрытия и очистки. Отдельно пометить прежнее описание историческим; не потерять перечисленные там идеи. README отражает local-only, версии ОС, builds, coverage и logical clear; `pillo-mini-app-description.md` сохранён как явно исторический архив.
 

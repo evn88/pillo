@@ -36,9 +36,10 @@ export const createPilloController = ({ open, notifications, now }: Dependencies
   };
   const persist = async (next: PilloDocument, purgeRecovery = false) => {
     if (!repository || !document) throw new Error('Хранилище не открыто.');
-    await repository.save(next, document.revision, purgeRecovery);
+    const warning = await repository.save(next, document.revision, purgeRecovery);
     document = next;
     publish({ snapshot: next.snapshot, calendarCoverage: next.calendarCoverage });
+    if (warning) publish({ error: warning.message });
   };
 
   const synchronize = async () => {

@@ -1,12 +1,13 @@
 import type { CalendarCoverage, IntakeStatus, MedicationInput, PilloDocument, PilloSettings, PilloSnapshot, ScheduleRule } from '../domain/types';
 
 export type CommandResult = { ok: true } | { ok: false; kind: 'validation' | 'persistence' | 'unavailable'; message: string; field?: string };
+export type PersistenceWarning = { kind: 'backup-protection'; message: string };
 
 export type { PilloCommand } from '../domain/command-types';
 
 export interface PilloRepository {
   load: () => Promise<PilloDocument>;
-  save: (document: PilloDocument, expectedRevision: number, purgeRecovery?: boolean) => Promise<void>;
+  save: (document: PilloDocument, expectedRevision: number, purgeRecovery?: boolean) => Promise<PersistenceWarning | null>;
   close: () => Promise<void>;
 }
 

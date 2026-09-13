@@ -69,8 +69,14 @@ This evidence proves that the regenerated native dependency graph compiles. It h
 
 On 2026-09-13, `npx expo prebuild --clean --platform android --no-install` generated the ignored Android project from the current app config. Its `android/app/src/main/AndroidManifest.xml` contains `android:allowBackup="false"`; this confirms the selected Android no-backup/no-restore policy is carried into the manifest.
 
-The generated iOS `Info.plist` has no equivalent global backup exclusion. Expo SDK 57 exposes Android `allowBackup` in app config, but does not expose a matching SQLite-file policy for iOS. Apple requires the backup-exclusion resource value to be applied to the actual support file. Pillo has not added that native adapter or verified an iOS transfer/restore, so iOS is deliberately not claimed to be excluded from backup.
+The generated iOS `Info.plist` has no equivalent global backup exclusion. Expo SDK 57 exposes Android `allowBackup` in app config, but does not expose a matching SQLite-file policy for iOS. Apple requires the backup-exclusion resource value to be applied to the actual support file.
+
+## iOS SQLite backup adapter
+
+On 2026-09-13, the local `modules/pillo-data-privacy` Expo module was generated with Expo's SDK 57-aware generator. Its Swift implementation applies `URLResourceValues.isExcludedFromBackup = true` to the opened SQLite file and its `-wal`/`-shm` companions when they exist. `src/storage/vault.native.ts` applies it after schema/WAL setup and the repository wrapper repeats it after every successful write, because OS file operations may reset the resource value. If a repeat fails after the transaction committed, the controller retains the confirmed change and exposes a distinct backup-protection warning; it does not invite a duplicate command.
+
+`npx expo-modules-autolinking resolve --platform ios` resolved `PilloDataPrivacy`; the regenerated Pod install included `PilloDataPrivacy (1.0.0)`. The unsigned generic-device Release build completed successfully after this change, producing `Pillo.app/Pillo`. This proves source compilation and native registration only. It does not inspect the resource value on a physical device or establish backup/transfer behavior.
 
 ## Not yet evidenced
 
-The iOS and Android projects are generated locally and ignored by Git; no Android SDK/adb, device, signing credentials, installation, or release artifact was available in this workspace. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
+The iOS and Android projects are generated locally and ignored by Git; no Android SDK/adb, device, signing credentials, installation, or release artifact was available in this workspace. `xcrun simctl list devices available` also failed because CoreSimulatorService was unavailable. Therefore this document closes the reproducible-command and OS-contract part of task 0.4 only. Tasks 4.1, 4.7, 5.6, 6.1, 7.2 and 7.3 remain device acceptance work.
