@@ -63,7 +63,7 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
       </Surface>
       <Text accessibilityRole="header" style={[styles.eyebrow, { color: palette.textMuted }]}>Данные приложения</Text>
       <Surface palette={palette}>
-        <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="lock.shield" fallback="Д" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Pillo</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Препараты и история хранятся только на этом устройстве.</Text></View></View>
+        <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="lock.shield" fallback="Д" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>PillDan</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Препараты и история хранятся только на этом устройстве.</Text></View></View>
         <View style={styles.inlineAction}><ActionButton label="Удалить все данные" onPress={clearAllData} palette={palette} tone="danger" /></View>
       </Surface>
     </ScrollView>

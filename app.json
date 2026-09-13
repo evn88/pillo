@@ -1,13 +1,19 @@
 {
   "expo": {
-    "name": "Pillo",
-    "slug": "pillo",
+    "name": "PillDan",
+    "slug": "pilldan",
     "version": "1.0.0",
-    "scheme": "pillo",
-    "platforms": ["ios", "android"],
-    "icon": "./assets/icon-pillo.png",
+    "scheme": [
+      "pilldan",
+      "pillo"
+    ],
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "icon": "./assets/icon-pilldan.png",
     "splash": {
-      "image": "./assets/splash-icon-pillo.png",
+      "image": "./assets/splash-icon-pilldan.png",
       "resizeMode": "contain",
       "backgroundColor": "#17104F"
     },
@@ -22,14 +28,16 @@
       "package": "com.vershkov.pillo",
       "adaptiveIcon": {
         "backgroundColor": "#17104F",
-        "foregroundImage": "./assets/android-icon-foreground-pillo.png",
-        "monochromeImage": "./assets/android-icon-monochrome-pillo.png"
+        "foregroundImage": "./assets/android-icon-foreground-pilldan.png",
+        "monochromeImage": "./assets/android-icon-monochrome-pilldan.png"
       },
       "predictiveBackGestureEnabled": true,
-      "permissions": ["android.permission.POST_NOTIFICATIONS"]
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon-pillo.png"
+      "favicon": "./assets/favicon-pilldan.png"
     },
     "plugins": [
       "expo-router",

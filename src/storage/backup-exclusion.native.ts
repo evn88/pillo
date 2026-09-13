@@ -10,7 +10,7 @@ const dataPrivacyModule = requireOptionalNativeModule<PilloDataPrivacyModule>('P
 export const excludeSQLiteDatabaseFromSystemBackup = async (databasePath: string): Promise<void> => {
   if (Platform.OS !== 'ios') return;
   if (!dataPrivacyModule) {
-    throw new Error('Для защиты локальной базы на iOS требуется нативная сборка Pillo.');
+    throw new Error('Для защиты локальной базы на iOS требуется нативная сборка PillDan.');
   }
   await dataPrivacyModule.excludeSQLiteDatabaseFromBackupAsync(databasePath);
 };

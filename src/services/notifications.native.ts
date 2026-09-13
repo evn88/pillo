@@ -49,12 +49,12 @@ export const notificationGateway: NotificationGateway = {
     .filter(item => item.identifier.startsWith(notificationPrefix) ||
       (typeof item.content.data?.ruleId === 'string' && typeof item.content.data?.medicationId === 'string'))
     .map(item => ({ id: item.identifier,
-      fingerprint: typeof item.content.data?.pilloFingerprint === 'string' ? item.content.data.pilloFingerprint : null })),
+      fingerprint: item.content.title === 'PillDan' && typeof item.content.data?.pilloFingerprint === 'string' ? item.content.data.pilloFingerprint : null })),
   cancel: id => Notifications.cancelScheduledNotificationAsync(id),
   dismissDelivered: () => Notifications.dismissAllNotificationsAsync(),
   schedule: async job => {
     await Notifications.scheduleNotificationAsync({ identifier: job.id,
-      content: { title: 'Pillo', body: 'Время отметить приём препарата', sound: 'default',
+      content: { title: 'PillDan', body: 'Время отметить приём препарата', sound: 'default',
         data: { intakeId: job.intakeId, pilloFingerprint: job.fingerprint } },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(job.at), channelId }
     });

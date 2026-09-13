@@ -24,7 +24,7 @@ export const PilloShell = ({ children }: { children: (layout: PilloScreenLayout)
     return (
       <SafeAreaView style={[styles.loading, { backgroundColor: palette.background }]}>
         <ActivityIndicator color={palette.primary} size="large" />
-        <Text style={[styles.loadingTitle, { color: palette.text }]}>Открываем Pillo</Text>
+        <Text style={[styles.loadingTitle, { color: palette.text }]}>Открываем PillDan</Text>
         <Text style={[styles.loadingText, { color: palette.textMuted }]}>Данные остаются на этом устройстве</Text>
       </SafeAreaView>
     );

@@ -70,7 +70,7 @@ export const LegacyStockReturnSheet = ({
           <View style={[styles.heading, isLargeText && styles.headingLarge]}>
             <View style={[styles.headingCopy, isLargeText && styles.headingCopyLarge]}>
               <Text style={[styles.title, { color: palette.text }]}>Уточните возвращаемый остаток</Text>
-              <Text style={[styles.description, { color: palette.textMuted }]}>Для этой старой записи Pillo не знает, сколько единиц было списано. Укажите фактическое количество, которое нужно вернуть в учётный запас.</Text>
+              <Text style={[styles.description, { color: palette.textMuted }]}>Для этой старой записи PillDan не знает, сколько единиц было списано. Укажите фактическое количество, которое нужно вернуть в учётный запас.</Text>
             </View>
           </View>
 
