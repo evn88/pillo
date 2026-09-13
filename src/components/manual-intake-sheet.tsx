@@ -1,3 +1,6 @@
+import type { CommandResult } from '../application/contracts';
+import { parseQuantity } from '../domain/validation';
+import { useFormCommand } from '../hooks/use-form-command';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -9,7 +12,7 @@ type ManualIntakeSheetProps = {
   isDark: boolean;
   medications: Medication[];
   onClose: () => void;
-  onSave: (medicationId: string, doseUnits: number) => Promise<void>;
+  onSave: (medicationId: string, doseUnits: number, commandId?: string) => Promise<CommandResult>;
   visible: boolean;
 };
 
@@ -17,15 +20,12 @@ export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visibl
   const palette = isDark ? colors.dark : colors.light;
   const [medicationId, setMedicationId] = useState(medications[0]?.id ?? '');
   const [dose, setDose] = useState('1');
-  const [isPending, setIsPending] = useState(false);
+  const { isPending, error, submit } = useFormCommand();
 
   const handleSave = async () => {
     if (!medicationId || isPending) return;
 
-    setIsPending(true);
-    await onSave(medicationId, Math.max(0.25, Number(dose) || 1));
-    setIsPending(false);
-    onClose();
+    await submit(commandId => onSave(medicationId, parseQuantity(dose, 'Количество', true), commandId), onClose, JSON.stringify([medicationId, dose]));
   };
 
   return (
@@ -88,6 +88,7 @@ export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visibl
             <Text style={[styles.hint, { color: palette.textMuted }]}>Можно указать целое число или дробь: 0,5; 1; 1,5.</Text>
           </View>
 
+          {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
           <View style={styles.actions}>
             <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
             <ActionButton

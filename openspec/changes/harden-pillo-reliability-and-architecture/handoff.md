@@ -1,0 +1,82 @@
+# Передача следующего этапа
+
+Дата: 2026-09-13. Исходная база аудита: `219a1df`; изменения архитектурного этапа находятся в рабочем дереве, коммит не создавался.
+
+## Что завершено
+
+Основное архитектурное ядро реализовано и подключено к существующему UI. В tasks.md закрыты 17 из 41 задач. Остальные задачи открыты, включая частично выполненные. Приложение остаётся Expo / React Native, без сервера, аккаунта и новых зависимостей.
+
+| Область | Реализация | Проверка |
+| --- | --- | --- |
+| Контракты | `src/application/contracts.ts`, `src/domain/command-types.ts` | TypeScript, import-boundary test |
+| Команды | `src/application/pillo-controller.ts`, `src/domain/commands.ts` | Queue, отказ первой записи, повтор command ID, отсутствие optimistic state |
+| React bridge | `src/hooks/use-pillo.ts`, `src/providers/pillo-provider.tsx` | TypeScript/exports; native mount и UI smoke ещё нужны |
+| Валидация | `src/domain/validation.ts`, `document-validation.ts` | Decimal, даты, связи, shape, precision, legacy |
+| SQLite | `src/storage/sqlite-repository.ts`, `vault.native.ts` | Настоящие Node SQLite transactions, rollback, newer-version, missing row, CAS, recovery |
+| Учёт | Stock effect в Intake, команды переходов | 0.5 → take 1 → undo, независимое пополнение, идемпотентность, legacy unknown |
+| Календарь | `src/domain/calendar.ts`, `schedule.ts`, `src/application/calendar-lifecycle.ts` | Изменение будущего плана, история, DST, полночь, foreground, неизвестные интервалы |
+| Уведомления | `src/application/notification-plan.ts`, controller, `src/services/notifications.native.ts` | Fake gateway: частичный отказ, restart, concurrent delete, отказ ACK, denied, take/undo |
+| Формы | `src/hooks/use-form-command.ts` и три существующие формы | Общий parser, явный CommandResult, pending-ref, сохранение ввода и command ID при повторе; RN UI-тесты ещё нужны |
+| История/ошибки | Минимальные изменения App и HistorySheet | Видимый bootstrap/retry, ошибки сохранения/уведомлений, фактическое время, legacy marker и unknown-периоды |
+
+## Важные контракты для продолжения
+
+1. **Нельзя снова писать snapshot из React callback.** Все изменения проходят через `controller.execute(commandId, command)`; актуальное состояние читается внутри последовательной очереди. `usePillo` только связывает lifecycle, native adapters и стабильные actions.
+2. `CommandResult.ok=false` означает отсутствие подтверждённого изменения. Ошибка уведомлений после записи показывается отдельно в `notificationStatus/notificationError`; повторять создание сущности из-за неё нельзя.
+3. ID команды хранится в последних 128 receipts. Формы сохраняют ID одной попытки для неизменённого ввода; новый ввод создаёт новое намерение. У ручной записи ID дополнительно детерминирован от command ID, поэтому повтор существующего ручного факта не списывает запас ещё раз. Не использовать один ID для разных намерений.
+4. `PilloDocument` — schemaVersion 2. `revision` меняется при каждом сохранении, SQL UPDATE проверяет expectedRevision и changes=1. Revision уведомлений отдельная: theme change не делает план dirty.
+5. Payload v1 сохраняется в `pillo_recovery` в той же транзакции миграции. Это локальная копия для восстановления преобразования, не защита от потери/повреждения всего файла. Не удалять её при старте. Только явная clear-data-команда очищает её атомарно с прикладными данными.
+6. Не запускать старый v1-бинарник поверх БД v2 и не менять `PRAGMA user_version` ради обхода decoder. Старый бинарник не умеет защищать newer schema. Реальный upgrade/restore должен проверяться на копии данных и затем на устройстве.
+7. Domain использует тысячные единицы, диапазон 0…1 000 000 000. Доза >0, упаковка >0 для пополнения; legacy нулевая упаковка допускается при чтении, но действие требует исправления. Недопустимые legacy значения не исправляются молча: база остаётся нетронутой и показывается ошибка.
+8. `Intake.stockEffectUnits=null` — неизвестное старое списание. `setIntakeStatus(id, status, legacyStockReturnUnits)` уже поддерживает явно подтверждённый возврат. До UI подтверждения обычный undo такой записи возвращает понятную ошибку, а не выдумывает количество.
+9. История хранит контекст названия/дозировки и время отметки. Материализованные прошлые события не переписываются при правке/удалении правила. Не добавлять в decoder обязательную ссылку исторического Intake на существующее ScheduleRule: правило может быть удалено намеренно.
+10. Календарь сохраняет сегодня +35 дней и объединённые интервалы покрытия. При долгом отсутствии промежутки вне покрытия неизвестны. Не восстанавливать их задним числом сегодняшними правилами. Отдельное поле исторической timezone ещё не реализовано; этот подпункт design.md остаётся открытым.
+11. Notification worker один; OS API выполняется вне очереди записи. ACK записывается через тот же writer и проверяет desiredRevision. После отказа следующее обновление сравнивает фактическую очередь со стабильными ID/fingerprint, не выполняя cancel-all.
+12. Временная стратегия — максимум 60 одноразовых уведомлений с честной датой покрытия. Это не доказанная автономность 35 дней и не измеренный лимит каждой платформы. При неизвестном календарном покрытии дата не объявляется подтверждённой. Android exact capability пока `unknown`; iOS quiet/denied отличены. Устаревшие события отменяются даже при denied, новые в таком состоянии не создаются.
+
+## Что сделать следующей модели
+
+### Первая группа: завершить пользовательский интерфейс вокруг готовых контрактов
+
+- 2.4: добавить явный диалог количества для legacy undo, предупреждение о расхождении учётного запаса, выбор дозы в быстром «Принять сейчас». Сейчас эта быстрая кнопка всё ещё пишет 1 ед.; общий ручной диалог уже принимает точный ввод.
+- 0.3 / 2.4: перейти на RHF/schema validation с теми же domain-инвариантами, связать ошибки с полями и добавить RN UI-тесты. Не дублировать правила допустимых доз в новой схеме.
+- 4.4: показывать возможность открытия системных Settings после denied, финализировать текст ограниченного режима **до включения**, проверить channel/provisional состояния. Не представлять `exact='unknown'` как точное время.
+- 4.6: добавить notification-response navigation по `intakeId` после bootstrap, для cold/warm start и удалённого события; никакой автоматической TAKEN при обычном нажатии.
+- 5.1–5.3: механически разнести четыре screen из App.tsx, локализовать владение формами, сделать единый theme contract, доступные labels, safe areas, keyboard handling, варианты native buttons. Не менять controller/storage ради разбивки JSX.
+- 5.4: закрытая история уже не монтируется. Остаются ограниченный render/пагинация и release-профиль на 10 000 записей. Не вводить ORM/новый store заранее.
+- 5.5 / 6.3: убрать подтверждённые unused styles/assets, привести README и исторический web-документ к фактическому native-продукту. README частично обновлён для новой очереди и логической очистки, утверждение о планшетном sidebar ещё требует сверки.
+
+### Вторая группа: tooling и готовность платформ
+
+- 0.2: обновить совместимые версии SDK 57, повторить compatibility check и npm audit. В этом этапе версии/lock-файл не менялись. Предыдущие 7 расхождений и 23 dependency findings не объявлены исправленными; `audit fix --force` не применять.
+- 0.3: добавить lint и нужные прямые devDependencies для тестов. Node SQLite-тесты используют установленный Node 22.22.1; `@types/node` пока доступен транзитивно, в тесте явный reference. Не переносить Node SQLite adapter в mobile bundle.
+- 6.1–6.2: применить и проверить backup/transfer policy, продумать recovery UI, завершить очистку **доставленных** уведомлений. Scheduled notifications уже отменяются reconciliation, исходный recovery payload удаляется транзакцией clear-data.
+- 0.4 / 3.5 / 4.7 / 5.6 / 7.2–7.3: настоящие native debug/release builds, установка/обновление v1 → v2, физические iOS/Android, доступность, клавиатура, поворот, минимальные ОС, reboot/permissions/энергосбережение. Не закрывать эти задачи по Node-тестам или export.
+
+### Отдельное решение после проверки устройств
+
+4.1: системные повторения ещё не внедрены. Проверить start/end курса, исключение одного occurrence без отмены следующих, DST и ёмкость очереди. Если продукт требует 10 событий в сутки в течение 35 дней без открытия, текущие 60 DATE-событий недостаточны. Только после spike выбирать recurring triggers или небольшой Swift/Kotlin adapter; не обещать фоновый JS по таймеру и не переписывать приложение целиком.
+
+Это оставшееся исследование может потребовать отдельного архитектурного решения по результатам native-проверки. Остальные перечисленные работы выполняются на уже заданных контрактах.
+
+## Проверки этого этапа
+
+| Проверка | Результат |
+| --- | --- |
+| `npm test` | PASS, 55 тестов / 6 файлов, exit 0 |
+| `npm run type-check` | PASS, exit 0 |
+| `CI=1 EXPO_NO_TELEMETRY=1 EXPO_OFFLINE=1 npx --no-install expo export --platform ios --output-dir /private/tmp/pillo-architecture-export-ios --max-workers 2` | PASS, 1415 модулей, Hermes около 3 MB |
+| Аналогичный export Android, `/private/tmp/pillo-architecture-export-android` | PASS, 1500 модулей, Hermes около 3.2 MB |
+| SQLite migration/rollback | PASS на настоящем SQLite через `node:sqlite`, не на Expo native SQLite |
+| Import boundaries | PASS в составе тестов |
+| `git diff --check` | PASS |
+| `openspec validate harden-pillo-reliability-and-architecture --strict` | PASS, exit 0 |
+| Lint / native build / device smoke / OS backup / реальные долгие уведомления | НЕ ВЫПОЛНЕНЫ |
+
+Предупреждение Node об экспериментальном SQLite API и Metro о NO_COLOR не приводят к отказу проверок. Native rendering, Expo SQLite bridge и доставка системой не доказаны этими тестами.
+
+## Рабочее дерево
+
+Неотслеживаемые `.agents/`, `.claude/`, `pillo-mini-app-description.md`, `skills-lock.json` существовали до этапа и не изменялись. Пакет OpenSpec также ещё не закоммичен. Новые файлы application/domain/storage/tests должны попасть в будущий коммит вместе с изменёнными вызывающими компонентами; старый `vault-contract.ts` удалён, его заменил `PilloRepository`.
+
+Следующее действие: завершить первую группу UI/tooling на текущем ядре, затем пройти native-приёмку. Переключение модели не требует сброса или переноса рабочего дерева.

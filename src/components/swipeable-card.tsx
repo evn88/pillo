@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import {
   Animated,
   PanResponder,
@@ -24,6 +24,8 @@ type SwipeableCardProps = {
 export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
   const translateX = useRef(new Animated.Value(0)).current;
   const currentOffset = useRef(0);
+  const deleteCallback = useRef(onDelete);
+  useLayoutEffect(() => { deleteCallback.current = onDelete; }, [onDelete]);
 
   const animateTo = (value: number) => {
     currentOffset.current = value;
@@ -38,7 +40,7 @@ export const SwipeableCard = ({ children, deleteColor, onDelete, onPress, style 
 
   const deleteCard = () => {
     animateTo(0);
-    onDelete();
+    deleteCallback.current();
   };
 
   const panResponder = useRef(

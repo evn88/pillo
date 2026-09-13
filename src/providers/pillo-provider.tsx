@@ -2,7 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react';
 
 import { usePillo } from '@/hooks/use-pillo';
 
-type PilloContextValue = ReturnType<typeof usePillo>;
+import type { PilloContextValue } from '../application/contracts';
 
 const PilloContext = createContext<PilloContextValue | null>(null);
 

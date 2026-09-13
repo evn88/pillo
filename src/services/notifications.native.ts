@@ -1,76 +1,39 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
-import { getUpcomingRuleDates } from '@/domain/schedule';
-import type { Medication, ScheduleRule } from '@/domain/types';
+import type { NotificationGateway } from '../application/contracts';
+import { notificationPrefix } from '../application/notification-plan';
 
-const CHANNEL_ID = 'pillo-intakes';
-
+const channelId = 'pillo-intakes';
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true
-  })
+  handleNotification: async () => ({ shouldPlaySound: true, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true })
 });
 
-/** Запрашивает разрешение и создаёт канал напоминаний Android. */
-export const requestNotificationPermission = async (): Promise<boolean> => {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Приём препаратов',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 150, 250],
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE
+export const notificationGateway: NotificationGateway = {
+  access: async request => {
+    if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync(channelId, {
+      name: 'Приём препаратов', importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 150, 250], lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE
     });
-  }
-
-  const current = await Notifications.getPermissionsAsync();
-  if (current.granted) return true;
-  const requested = await Notifications.requestPermissionsAsync();
-  return requested.granted;
-};
-
-/**
- * Полностью пересоздаёт rolling window локальных уведомлений.
- * В текст уведомления попадает название препарата — пользователь управляет preview на уровне ОС.
- */
-export const rescheduleNotifications = async (
-  medications: Medication[],
-  rules: ScheduleRule[],
-  enabled: boolean
-): Promise<void> => {
-  await Notifications.cancelAllScheduledNotificationsAsync();
-  if (!enabled) return;
-
-  const hasPermission = await requestNotificationPermission();
-  if (!hasPermission) throw new Error('Уведомления запрещены в системных настройках');
-
-  const medicationById = new Map(medications.map(medication => [medication.id, medication]));
-  const now = new Date();
-  const jobs = rules
-    .flatMap(rule => {
-      const medication = medicationById.get(rule.medicationId);
-      if (!medication?.isActive) return [];
-      return getUpcomingRuleDates(rule, now, 30).map(date => ({ date, medication, rule }));
-    })
-    .sort((first, second) => first.date.getTime() - second.date.getTime())
-    .slice(0, 60);
-
-  for (const { date, medication, rule } of jobs) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Pillo',
-        body: 'Время отметить приём препарата',
-        data: { ruleId: rule.id, medicationId: medication.id },
-        sound: 'default'
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date,
-        channelId: CHANNEL_ID
-      }
+    let permission = await Notifications.getPermissionsAsync();
+    if (request && !permission.granted && permission.canAskAgain) permission = await Notifications.requestPermissionsAsync();
+    const quiet = permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    const channel = Platform.OS === 'android' ? await Notifications.getNotificationChannelAsync(channelId) : null;
+    const blocked = channel?.importance === Notifications.AndroidImportance.NONE;
+    return { authorization: blocked ? 'denied' : quiet ? 'quiet' : permission.granted ? 'granted' : 'denied',
+      exact: Platform.OS === 'android' ? 'unknown' : 'system' };
+  },
+  list: async () => (await Notifications.getAllScheduledNotificationsAsync())
+    .filter(item => item.identifier.startsWith(notificationPrefix) ||
+      (typeof item.content.data?.ruleId === 'string' && typeof item.content.data?.medicationId === 'string'))
+    .map(item => ({ id: item.identifier,
+      fingerprint: typeof item.content.data?.pilloFingerprint === 'string' ? item.content.data.pilloFingerprint : null })),
+  cancel: id => Notifications.cancelScheduledNotificationAsync(id),
+  schedule: async job => {
+    await Notifications.scheduleNotificationAsync({ identifier: job.id,
+      content: { title: 'Pillo', body: 'Время отметить приём препарата', sound: 'default',
+        data: { intakeId: job.intakeId, pilloFingerprint: job.fingerprint } },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: new Date(job.at), channelId }
     });
   }
 };

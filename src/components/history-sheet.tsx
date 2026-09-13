@@ -1,11 +1,13 @@
+import { getLocalDateKey } from '../domain/schedule';
 import { Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import type { Intake, Medication } from '@/domain/types';
+import type { CalendarCoverage, Intake, Medication } from '@/domain/types';
 import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton, Surface } from './ui';
 
 type HistorySheetProps = {
   intakes: Intake[];
+  calendarCoverage: CalendarCoverage[];
   isDark: boolean;
   medications: Medication[];
   onClose: () => void;
@@ -22,11 +24,11 @@ const formatDate = (dateKey: string): string => {
   }).format(date);
 };
 
-export const HistorySheet = ({ intakes, isDark, medications, onClose, visible }: HistorySheetProps) => {
+export const HistorySheet = ({ intakes, calendarCoverage, isDark, medications, onClose, visible }: HistorySheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
   const medicationById = new Map(medications.map(medication => [medication.id, medication]));
   const history = [...intakes]
-    .filter(intake => intake.status !== 'PENDING')
+    .filter(intake => intake.localDate <= getLocalDateKey(new Date()))
     .sort((first, second) => {
       const firstKey = `${first.localDate}-${first.localTime}`;
       const secondKey = `${second.localDate}-${second.localTime}`;
@@ -50,13 +52,14 @@ export const HistorySheet = ({ intakes, isDark, medications, onClose, visible }:
           <View style={styles.headerCopy}>
             <Text style={[styles.title, { color: palette.text }]}>История приёма</Text>
             <Text style={[styles.description, { color: palette.textMuted }]}>
-              Здесь собраны приёмы по расписанию и ручные отметки.
+              Здесь собраны приёмы по расписанию и ручные отметки. Периоды вне сохранённого покрытия неизвестны.
             </Text>
           </View>
           <ActionButton label="Готово" onPress={onClose} palette={palette} tone="secondary" />
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
+          <Text style={{ color: palette.textMuted }}>Покрытие плана: {calendarCoverage.map(item => `${item.from} — ${item.through}`).join('; ') || 'неизвестно'}.</Text>
           {history.length === 0 ? (
             <Surface palette={palette}>
               <Text style={[styles.emptyTitle, { color: palette.text }]}>История пока пуста</Text>
@@ -83,15 +86,17 @@ export const HistorySheet = ({ intakes, isDark, medications, onClose, visible }:
                       >
                         <View style={styles.entryCopy}>
                           <Text style={[styles.entryTitle, { color: palette.text }]}>
-                            {medication?.name ?? 'Удалённый препарат'}
+                            {intake.medicationName || medication?.name || 'Удалённый препарат'}
                           </Text>
                           <Text style={[styles.entryMeta, { color: palette.textMuted }]}>
                             {intake.localTime} · {intake.doseUnits} ед. · {intake.source === 'MANUAL' ? 'вручную' : 'по расписанию'}
+                            {intake.recordedAt ? ` · отмечено ${new Date(intake.recordedAt).toLocaleString('ru-RU')}` : ''}
+                            {intake.contextSource === 'LEGACY' ? ' · данные препарата восстановлены' : ''}
                           </Text>
                         </View>
                         <View style={[styles.badge, { backgroundColor: isTaken ? palette.successSoft : palette.dangerSoft }]}>
                           <Text style={[styles.badgeText, { color: isTaken ? palette.success : palette.danger }]}>
-                            {isTaken ? 'ПРИНЯТО' : 'ПРОПУЩЕНО'}
+                            {isTaken ? 'ПРИНЯТО' : intake.status === 'PENDING' ? 'НЕ ОТМЕЧЕНО' : 'ПРОПУЩЕНО'}
                           </Text>
                         </View>
                       </View>

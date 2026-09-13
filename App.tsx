@@ -1,3 +1,4 @@
+import type { CommandResult, PilloContextValue } from './src/application/contracts';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -43,6 +44,15 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
   const {
     snapshot,
     status,
+    error,
+    isSaving,
+    retry,
+    retryNotifications,
+    notificationError,
+    notificationStatus,
+    notificationAccess,
+    coverageEndsAt,
+    calendarCoverage,
     addPackage,
     clearData,
     createMedicationId,
@@ -54,6 +64,8 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
     takeMedicationNow,
     updateSettings
   } = usePilloContext();
+  const [newMedicationId, setNewMedicationId] = useState('');
+  const [newRuleId, setNewRuleId] = useState('');
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [isMedicationFormOpen, setMedicationFormOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<ScheduleRule | null>(null);
@@ -75,21 +87,24 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
     );
   }
 
-  if (status === 'unsupported') {
+  if (status === 'error') {
     return (
       <SafeAreaView style={[styles.loading, { backgroundColor: palette.background }]}>
         <Text style={[styles.loadingTitle, { color: palette.text }]}>Хранилище недоступно</Text>
-        <Text style={[styles.loadingText, { color: palette.textMuted }]}>Перезапустите приложение или обновите систему.</Text>
+        <Text style={[styles.loadingText, { color: palette.textMuted }]}>{error ?? 'Не удалось открыть данные.'}</Text>
+        <ActionButton label="Повторить" onPress={retry} palette={palette} />
       </SafeAreaView>
     );
   }
 
   const openNewMedication = () => {
+    setNewMedicationId(createMedicationId());
     setEditingMedication(null);
     setMedicationFormOpen(true);
   };
 
   const openNewRule = () => {
+    setNewRuleId(createMedicationId());
     setEditingRule(null);
     setScheduleFormOpen(true);
   };
@@ -116,6 +131,18 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
             </View>
           </View>
 
+          {error ? <Text accessibilityRole="alert" style={{ color: palette.danger, padding: spacing.md }}>{error}</Text> : null}
+          {isSaving ? <Text accessibilityLiveRegion="polite" style={{ color: palette.textMuted, padding: spacing.sm }}>Сохраняем…</Text> : null}
+          {notificationError ? <Text accessibilityRole="alert" style={{ color: palette.danger, padding: spacing.md }}>{notificationError}</Text> : null}
+          {activeTab === 'settings' ? <View style={{ padding: spacing.md, gap: spacing.sm }}>
+            <Text style={{ color: palette.textMuted }}>Напоминания: {notificationStatus === 'ready' ? 'обновлены' : notificationStatus === 'disabled' ? 'выключены' : notificationStatus === 'syncing' ? 'обновляются' : 'требуют проверки'}.</Text>
+            {snapshot.settings.notificationsEnabled ? <>
+              <Text style={{ color: palette.textMuted }}>Покрытие: {notificationStatus === 'ready' && coverageEndsAt ? new Date(coverageEndsAt).toLocaleString('ru-RU') : 'не подтверждено'}. Для продления открывайте приложение.</Text>
+              {notificationAccess?.exact === 'unknown' ? <Text style={{ color: palette.textMuted }}>Точное время доставки Android не подтверждено.</Text> : null}
+              {notificationAccess?.authorization === 'quiet' ? <Text style={{ color: palette.textMuted }}>Система разрешает тихие уведомления.</Text> : null}
+              <ActionButton label="Обновить напоминания" onPress={retryNotifications} palette={palette} />
+            </> : null}
+          </View> : null}
           <View style={[styles.contentFrame, { backgroundColor: palette.background }]}>
             {activeTab === 'today' ? (
               <TodayScreen
@@ -196,7 +223,7 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
           isDark={isDark}
           key={editingMedication?.id ?? 'new-medication'}
           medication={editingMedication}
-          newId={createMedicationId()}
+          newId={newMedicationId}
           onClose={() => setMedicationFormOpen(false)}
           onSave={saveMedication}
           visible
@@ -210,6 +237,7 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
           onClose={() => setScheduleFormOpen(false)}
           onSave={saveScheduleRule}
           rule={editingRule}
+          newId={newRuleId}
           visible
         />
       ) : null}
@@ -221,13 +249,14 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
         onSave={takeMedicationNow}
         visible={isManualIntakeOpen}
       />
-      <HistorySheet
+      {isHistoryOpen ? <HistorySheet
+        calendarCoverage={calendarCoverage}
         intakes={snapshot.intakes}
         isDark={isDark}
         medications={snapshot.medications}
         onClose={() => setHistoryOpen(false)}
         visible={isHistoryOpen}
-      />
+      /> : null}
     </SafeAreaView>
   );
 };
@@ -249,9 +278,9 @@ const TodayScreen = ({
   onOpenHistory: () => void;
   onOpenManualIntake: () => void;
   onOpenMedications: () => void;
-  onStatusChange: (id: string, status: 'PENDING' | 'TAKEN' | 'SKIPPED') => Promise<void>;
+  onStatusChange: (id: string, status: 'PENDING' | 'TAKEN' | 'SKIPPED') => Promise<CommandResult>;
   palette: Palette;
-  snapshot: ReturnType<typeof usePilloContext>['snapshot'];
+  snapshot: PilloContextValue['snapshot'];
 }) => {
   const todayKey = getLocalDateKey(new Date());
   const medicationById = new Map(snapshot.medications.map(medication => [medication.id, medication]));
@@ -341,7 +370,7 @@ const TodayScreen = ({
   );
 };
 
-const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete, onEdit, onTakeNow, palette }: { isDark: boolean; medications: Medication[]; onAdd: () => void; onAddPackage: (id: string) => Promise<void>; onDelete: (medication: Medication) => void; onEdit: (medication: Medication) => void; onTakeNow: (id: string, dose: number) => Promise<void>; palette: Palette }) => (
+const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete, onEdit, onTakeNow, palette }: { isDark: boolean; medications: Medication[]; onAdd: () => void; onAddPackage: (id: string) => Promise<CommandResult>; onDelete: (medication: Medication) => void; onEdit: (medication: Medication) => void; onTakeNow: (id: string, dose: number) => Promise<CommandResult>; palette: Palette }) => (
   <View style={styles.screenRoot}>
     <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]}>
       <Text style={[styles.eyebrow, { color: palette.textMuted }]}>МОИ ПРЕПАРАТЫ</Text>
@@ -421,7 +450,7 @@ const ScheduleScreen = ({ isDark, medications, onAdd, onDelete, onEdit, palette,
   );
 };
 
-const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: { isTablet: boolean; onChange: (settings: PilloSettings) => Promise<void>; onClearData: () => void; palette: Palette; settings: PilloSettings }) => (
+const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: { isTablet: boolean; onChange: (settings: Partial<PilloSettings>) => Promise<CommandResult>; onClearData: () => void; palette: Palette; settings: PilloSettings }) => (
   <ScrollView contentContainerStyle={styles.screenContent}>
     <Text style={[styles.eyebrow, { color: palette.textMuted }]}>УВЕДОМЛЕНИЯ</Text>
     <View style={isTablet ? styles.settingsGrid : styles.list}>
@@ -429,7 +458,7 @@ const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: 
         <View style={styles.settingRow}>
           <View style={[styles.settingIcon, { backgroundColor: palette.success }]}><Text style={styles.settingIconText}>◯</Text></View>
           <View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Push-уведомления</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Системные локальные напоминания о приёмах.</Text></View>
-          <Switch accessibilityLabel="Push-уведомления" ios_backgroundColor={palette.surfaceMuted} onValueChange={value => void onChange({ ...settings, notificationsEnabled: value })} trackColor={{ false: palette.surfaceMuted, true: Platform.OS === 'ios' ? palette.success : palette.successSoft }} thumbColor={Platform.OS === 'android' ? (settings.notificationsEnabled ? palette.success : palette.textMuted) : undefined} value={settings.notificationsEnabled} />
+          <Switch accessibilityLabel="Push-уведомления" ios_backgroundColor={palette.surfaceMuted} onValueChange={value => void onChange({ notificationsEnabled: value })} trackColor={{ false: palette.surfaceMuted, true: Platform.OS === 'ios' ? palette.success : palette.successSoft }} thumbColor={Platform.OS === 'android' ? (settings.notificationsEnabled ? palette.success : palette.textMuted) : undefined} value={settings.notificationsEnabled} />
         </View>
       </Surface>
       <Text style={[styles.eyebrow, { color: palette.textMuted }]}>ВНЕШНИЙ ВИД</Text>
@@ -437,7 +466,7 @@ const SettingsScreen = ({ isTablet, onChange, onClearData, palette, settings }: 
         <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primary }]}><Text style={styles.settingIconText}>◐</Text></View><Text style={[styles.cardTitle, { color: palette.text }]}>Тема</Text></View>
         <View accessibilityRole="radiogroup" style={styles.themeOptions}>{(['LIGHT', 'DARK', 'SYSTEM'] as const).map(theme => {
           const selected = settings.theme === theme;
-          return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} android_ripple={{ color: palette.primarySoft }} key={theme} onPress={() => void onChange({ ...settings, theme })} style={[styles.themeOption, { backgroundColor: selected ? palette.surfaceMuted : palette.background, borderColor: selected ? palette.textMuted : palette.border }]}><Text style={[styles.themeIcon, { color: theme === 'LIGHT' ? palette.warning : theme === 'DARK' ? palette.primary : palette.textMuted }]}>{theme === 'LIGHT' ? '☀' : theme === 'DARK' ? '☾' : '▣'}</Text><Text style={{ color: palette.text, fontWeight: '700' }}>{theme === 'SYSTEM' ? 'Системная' : theme === 'LIGHT' ? 'Светлая' : 'Тёмная'}</Text></Pressable>;
+          return <Pressable accessibilityRole="radio" accessibilityState={{ checked: selected }} android_ripple={{ color: palette.primarySoft }} key={theme} onPress={() => void onChange({ theme })} style={[styles.themeOption, { backgroundColor: selected ? palette.surfaceMuted : palette.background, borderColor: selected ? palette.textMuted : palette.border }]}><Text style={[styles.themeIcon, { color: theme === 'LIGHT' ? palette.warning : theme === 'DARK' ? palette.primary : palette.textMuted }]}>{theme === 'LIGHT' ? '☀' : theme === 'DARK' ? '☾' : '▣'}</Text><Text style={{ color: palette.text, fontWeight: '700' }}>{theme === 'SYSTEM' ? 'Системная' : theme === 'LIGHT' ? 'Светлая' : 'Тёмная'}</Text></Pressable>;
         })}</View>
       </Surface>
       <Text style={[styles.eyebrow, { color: palette.textMuted }]}>О ПРИЛОЖЕНИИ</Text>

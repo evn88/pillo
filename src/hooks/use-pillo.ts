@@ -1,249 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import * as Crypto from 'expo-crypto';
 
-import { getLocalDateKey, materializeIntakesForDate } from '@/domain/schedule';
-import {
-  emptySnapshot,
-  type IntakeStatus,
-  type Medication,
-  type PilloSettings,
-  type PilloSnapshot,
-  type ScheduleRule
-} from '@/domain/types';
-import { rescheduleNotifications } from '@/services/notifications';
-import { getVaultAvailability, openVault } from '@/storage/vault';
-import type { VaultHandle } from '@/storage/vault-contract';
+import type { PilloActions, PilloContextValue, PilloCommand } from '../application/contracts';
+import { createInitialState, createPilloController } from '../application/pillo-controller';
+import { createCalendarLifecycle } from '../application/calendar-lifecycle';
+import { notificationGateway } from '../services/notifications';
+import { openVault } from '../storage/vault';
 
-type AppStatus = 'checking' | 'unsupported' | 'unlocked';
-
-/** Управляет локальным состоянием Pillo и синхронно сохраняет каждую мутацию в vault. */
-export const usePillo = () => {
-  const [status, setStatus] = useState<AppStatus>('checking');
-  const [snapshot, setSnapshot] = useState<PilloSnapshot>(emptySnapshot);
-  const [vault, setVault] = useState<VaultHandle | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+/** React управляет подпиской и lifecycle; команды и persistence принадлежат controller. */
+export const usePillo = (): PilloContextValue => {
+  const [state, setState] = useState(createInitialState);
+  const controllerRef = useRef<ReturnType<typeof createPilloController> | null>(null);
+  const disposal = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
-    void getVaultAvailability().then(availability => {
-      if (availability === 'unsupported') {
-        setStatus('unsupported');
-        return;
-      }
-      void unlock();
+    const previousDisposal = disposal.current;
+    const controller = createPilloController({
+      open: async () => { await previousDisposal; return openVault(); },
+      notifications: notificationGateway, now: () => new Date()
     });
+    controllerRef.current = controller;
+    const unsubscribe = controller.subscribe(() => setState(controller.getState()));
+    void controller.start();
+    const lifecycle = createCalendarLifecycle({
+      now: () => new Date(), timezone: () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+      refresh: () => { void controller.execute(Crypto.randomUUID(), { type: 'refresh-calendar' }); },
+      setTimer: setTimeout, clearTimer: clearTimeout
+    });
+    const subscription = AppState.addEventListener('change', status => {
+      if (status === 'active') lifecycle.resume();
+      else lifecycle.pause();
+    });
+    if (AppState.currentState === 'active') lifecycle.resume(false);
+    return () => {
+      lifecycle.dispose();
+      subscription.remove();
+      unsubscribe();
+      controllerRef.current = null;
+      disposal.current = controller.dispose().catch(() => undefined);
+    };
   }, []);
 
-  const unlock = async () => {
-    setError(null);
-    try {
-      const nextVault = await openVault();
-      const storedSnapshot = await nextVault.load();
-      const intakes = materializeIntakesForDate(
-        storedSnapshot.scheduleRules,
-        storedSnapshot.intakes,
-        new Date()
-      );
-      const hydratedSnapshot = { ...storedSnapshot, intakes };
-      await nextVault.save(hydratedSnapshot);
-      setVault(nextVault);
-      setSnapshot(hydratedSnapshot);
-      setStatus('unlocked');
-      void rescheduleNotifications(
-        hydratedSnapshot.medications,
-        hydratedSnapshot.scheduleRules,
-        hydratedSnapshot.settings.notificationsEnabled
-      ).catch(() => {
-        setError('Не удалось обновить локальные напоминания. Проверьте разрешения системы.');
-      });
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Не удалось разблокировать Pillo');
-    }
-  };
-
-  const commit = async (update: (current: PilloSnapshot) => PilloSnapshot) => {
-    if (!vault) return;
-    setError(null);
-    setIsSaving(true);
-    const previous = snapshot;
-    const next = update(previous);
-    setSnapshot(next);
-
-    try {
-      await vault.save(next);
-    } catch {
-      setSnapshot(previous);
-      setError('Изменения не сохранены. Повторите действие.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const saveMedication = async (
-    input: Pick<
-      Medication,
-      'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'
-    >
-  ) => {
-    const now = new Date().toISOString();
-    await commit(current => {
-      const existing = current.medications.find(medication => medication.id === input.id);
-      const medication: Medication = {
-        ...input,
-        isActive: existing?.isActive ?? true,
-        createdAt: existing?.createdAt ?? now,
-        updatedAt: now
-      };
-      return {
-        ...current,
-        medications: existing
-          ? current.medications.map(item => (item.id === medication.id ? medication : item))
-          : [...current.medications, medication]
-      };
-    });
-  };
-
-  const createMedicationId = (): string => Crypto.randomUUID();
-
-  const deleteMedication = async (medicationId: string) => {
-    const nextMedications = snapshot.medications.filter(item => item.id !== medicationId);
-    const nextRules = snapshot.scheduleRules.filter(item => item.medicationId !== medicationId);
-    await commit(current => ({
-      ...current,
-      medications: current.medications.filter(item => item.id !== medicationId),
-      scheduleRules: current.scheduleRules.filter(item => item.medicationId !== medicationId),
-      intakes: current.intakes.filter(item => item.medicationId !== medicationId)
-    }));
-    await rescheduleNotifications(
-      nextMedications,
-      nextRules,
-      snapshot.settings.notificationsEnabled
-    );
-  };
-
-  const addPackage = async (medicationId: string) => {
-    await commit(current => ({
-      ...current,
-      medications: current.medications.map(medication =>
-        medication.id === medicationId
-          ? {
-              ...medication,
-              stockUnits: medication.stockUnits + medication.unitsPerPackage,
-              updatedAt: new Date().toISOString()
-            }
-          : medication
-      )
-    }));
-  };
-
-  const saveScheduleRule = async (rule: Omit<ScheduleRule, 'id'> & { id?: string }) => {
-    const normalizedRule: ScheduleRule = { ...rule, id: rule.id ?? Crypto.randomUUID() };
-    const exists = snapshot.scheduleRules.some(item => item.id === normalizedRule.id);
-    const nextRules = exists
-      ? snapshot.scheduleRules.map(item =>
-          item.id === normalizedRule.id ? normalizedRule : item
-        )
-      : [...snapshot.scheduleRules, normalizedRule];
-    await commit(current => {
-      return {
-        ...current,
-        scheduleRules: nextRules,
-        intakes: materializeIntakesForDate(nextRules, current.intakes, new Date())
-      };
-    });
-    await rescheduleNotifications(
-      snapshot.medications,
-      nextRules,
-      snapshot.settings.notificationsEnabled
-    );
-  };
-
-  const deleteScheduleRule = async (ruleId: string) => {
-    const nextRules = snapshot.scheduleRules.filter(rule => rule.id !== ruleId);
-    await commit(current => ({
-      ...current,
-      scheduleRules: current.scheduleRules.filter(rule => rule.id !== ruleId),
-      intakes: current.intakes.filter(intake => intake.scheduleRuleId !== ruleId)
-    }));
-    await rescheduleNotifications(snapshot.medications, nextRules, snapshot.settings.notificationsEnabled);
-  };
-
-  const setIntakeStatus = async (intakeId: string, nextStatus: IntakeStatus) => {
-    await commit(current => {
-      const intake = current.intakes.find(item => item.id === intakeId);
-      if (!intake) return current;
-      const wasTaken = intake.status === 'TAKEN';
-      const willBeTaken = nextStatus === 'TAKEN';
-      const stockDelta = wasTaken === willBeTaken ? 0 : willBeTaken ? -intake.doseUnits : intake.doseUnits;
-
-      return {
-        ...current,
-        intakes: current.intakes.map(item =>
-          item.id === intakeId
-            ? { ...item, status: nextStatus, takenAt: willBeTaken ? new Date().toISOString() : null }
-            : item
-        ),
-        medications: current.medications.map(medication =>
-          medication.id === intake.medicationId
-            ? { ...medication, stockUnits: Math.max(0, medication.stockUnits + stockDelta) }
-            : medication
-        )
-      };
-    });
-  };
-
-  const updateSettings = async (settings: PilloSettings) => {
-    await commit(current => ({ ...current, settings }));
-    await rescheduleNotifications(snapshot.medications, snapshot.scheduleRules, settings.notificationsEnabled);
-  };
-
-  const takeMedicationNow = async (medicationId: string, doseUnits: number) => {
-    const now = new Date();
-    const localTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const intakeId = Crypto.randomUUID();
-    await commit(current => ({
-      ...current,
-      intakes: [
-        ...current.intakes,
-        {
-          id: intakeId,
-          medicationId,
-          scheduleRuleId: null,
-          localDate: getLocalDateKey(now),
-          localTime,
-          doseUnits,
-          status: 'TAKEN',
-          takenAt: now.toISOString(),
-          source: 'MANUAL'
-        }
-      ],
-      medications: current.medications.map(medication =>
-        medication.id === medicationId
-          ? { ...medication, stockUnits: Math.max(0, medication.stockUnits - doseUnits) }
-          : medication
-      )
-    }));
-  };
-
-  const clearData = async () => {
-    await commit(() => emptySnapshot);
-    await rescheduleNotifications([], [], false);
-  };
-
-  return {
-    error,
-    isSaving,
-    snapshot,
-    status,
-    addPackage,
-    clearData,
-    createMedicationId,
-    deleteMedication,
-    deleteScheduleRule,
-    saveMedication,
-    saveScheduleRule,
-    setIntakeStatus,
-    takeMedicationNow,
-    updateSettings
-  };
+  const [actions] = useState<PilloActions>(() => {
+    const execute = (command: PilloCommand, commandId = Crypto.randomUUID()) => controllerRef.current?.execute(commandId, command) ??
+      Promise.resolve({ ok: false as const, kind: 'unavailable' as const, message: 'Данные ещё не открыты.' });
+    return {
+      retry: () => { void controllerRef.current?.start(); },
+      retryNotifications: () => controllerRef.current?.requestSync(true),
+      createMedicationId: () => Crypto.randomUUID(),
+      saveMedication: (input, commandId) => execute({ type: 'save-medication', input }, commandId),
+      deleteMedication: medicationId => execute({ type: 'delete-medication', medicationId }),
+      addPackage: medicationId => execute({ type: 'add-package', medicationId }),
+      saveScheduleRule: (rule, commandId) => execute({ type: 'save-rule', rule: { ...rule, id: rule.id ?? Crypto.randomUUID() } }, commandId),
+      deleteScheduleRule: ruleId => execute({ type: 'delete-rule', ruleId }),
+      setIntakeStatus: (intakeId, status, legacyStockReturnUnits) => execute({ type: 'set-intake-status', intakeId, status, legacyStockReturnUnits }),
+      takeMedicationNow: (medicationId, doseUnits, commandId = Crypto.randomUUID()) => execute({ type: 'record-manual', medicationId, doseUnits, intakeId: `manual:${commandId}` }, commandId),
+      updateSettings: async settings => {
+        const result = await execute({ type: 'update-settings', settings });
+        if (result.ok && settings.notificationsEnabled === true) controllerRef.current?.requestSync(true);
+        return result;
+      },
+      clearData: () => execute({ type: 'clear-data' })
+    };
+  });
+  return { ...state, ...actions };
 };

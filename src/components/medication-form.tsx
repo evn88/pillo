@@ -1,3 +1,6 @@
+import type { CommandResult } from '../application/contracts';
+import { parseQuantity } from '../domain/validation';
+import { useFormCommand } from '../hooks/use-form-command';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -19,7 +22,7 @@ type MedicationFormProps = {
   medication: Medication | null;
   newId: string;
   onClose: () => void;
-  onSave: (medication: Pick<Medication, 'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>) => Promise<void>;
+  onSave: (medication: Pick<Medication, 'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>, commandId?: string) => Promise<CommandResult>;
   visible: boolean;
 };
 
@@ -40,24 +43,21 @@ export const MedicationForm = ({
   const [minThresholdUnits, setMinThresholdUnits] = useState(
     String(medication?.minThresholdUnits ?? 5)
   );
-  const [isPending, setIsPending] = useState(false);
+  const { isPending, error, submit } = useFormCommand();
 
   const fieldStyle = [styles.input, { backgroundColor: palette.surface, borderColor: palette.border, color: palette.text }];
 
   const handleSave = async () => {
     if (!name.trim()) return;
-    setIsPending(true);
-    await onSave({
+    await submit(commandId => onSave({
       id: medication?.id ?? newId,
       name: name.trim(),
       dosage: dosage.trim(),
       form: form.trim(),
-      stockUnits: Math.max(0, Number(stockUnits) || 0),
-      unitsPerPackage: Math.max(0, Number(unitsPerPackage) || 0),
-      minThresholdUnits: Math.max(0, Number(minThresholdUnits) || 0)
-    });
-    setIsPending(false);
-    onClose();
+      stockUnits: parseQuantity(stockUnits, 'Остаток'),
+      unitsPerPackage: parseQuantity(unitsPerPackage, 'В упаковке', true),
+      minThresholdUnits: parseQuantity(minThresholdUnits, 'Низкий запас')
+    }, commandId), onClose, JSON.stringify([name, dosage, form, stockUnits, unitsPerPackage, minThresholdUnits]));
   };
 
   return (
@@ -128,6 +128,7 @@ export const MedicationForm = ({
             </View>
           </View>
 
+          {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
           <ActionButton
             disabled={!name.trim() || isPending}
             label={isPending ? 'Сохраняем…' : 'Сохранить'}

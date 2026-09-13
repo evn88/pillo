@@ -1,3 +1,6 @@
+import type { CommandResult } from '../application/contracts';
+import { parseQuantity } from '../domain/validation';
+import { useFormCommand } from '../hooks/use-form-command';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
@@ -20,13 +23,15 @@ type ScheduleFormProps = {
   isDark: boolean;
   medications: Medication[];
   onClose: () => void;
-  onSave: (rule: Omit<ScheduleRule, 'id'> & { id?: string }) => Promise<void>;
+  onSave: (rule: Omit<ScheduleRule, 'id'> & { id?: string }, commandId?: string) => Promise<CommandResult>;
   rule: ScheduleRule | null;
+  newId: string;
   visible: boolean;
 };
 
-export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visible }: ScheduleFormProps) => {
+export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId, visible }: ScheduleFormProps) => {
   const palette = isDark ? colors.dark : colors.light;
+  const { isPending, error, submit } = useFormCommand();
   const [medicationId, setMedicationId] = useState(rule?.medicationId ?? medications[0]?.id ?? '');
   const [time, setTime] = useState(rule?.time ?? '09:00');
   const [doseUnits, setDoseUnits] = useState(String(rule?.doseUnits ?? 1));
@@ -41,18 +46,17 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
   };
 
   const handleSave = async () => {
-    await onSave({
-      id: rule?.id,
+    await submit(commandId => onSave({
+      id: rule?.id ?? newId,
       medicationId,
       time,
-      doseUnits: Math.max(0.25, Number(doseUnits) || 1),
+      doseUnits: parseQuantity(doseUnits, 'Количество', true),
       daysOfWeek: selectedDays,
       startDate,
       endDate: endDate || null,
       comment: comment.trim(),
       isActive: rule?.isActive ?? true
-    });
-    onClose();
+    }, commandId), onClose, JSON.stringify([medicationId, time, doseUnits, selectedDays, startDate, endDate, comment]));
   };
 
   return (
@@ -137,9 +141,10 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, visib
           <TextInput clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onChangeText={setComment} selectionColor={palette.primary} style={inputStyle} value={comment} />
         </View>
 
+        {error ? <Text accessibilityRole="alert" style={{ color: palette.danger }}>{error}</Text> : null}
         <ActionButton
-          disabled={!medicationId || selectedDays.length === 0 || !/^\d{2}:\d{2}$/.test(time)}
-          label="Сохранить"
+          disabled={isPending || !medicationId || selectedDays.length === 0 || !/^\d{2}:\d{2}$/.test(time)}
+          label={isPending ? 'Сохраняем…' : 'Сохранить'}
           onPress={() => void handleSave()}
           palette={palette}
         />

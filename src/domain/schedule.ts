@@ -1,4 +1,5 @@
 import type { Intake, ScheduleRule } from './types';
+import { isDateKey, isTime } from './validation';
 
 const pad = (value: number): string => String(value).padStart(2, '0');
 
@@ -9,6 +10,7 @@ export const getLocalDateKey = (date: Date): string => {
 
 /** Создаёт локальную дату без преобразования через UTC. */
 export const fromLocalDateTime = (dateKey: string, time: string): Date | null => {
+  if (!isDateKey(dateKey) || !isTime(time)) return null;
   const [yearValue, monthValue, dayValue] = dateKey.split('-').map(Number);
   const [hourValue, minuteValue] = time.split(':').map(Number);
 
@@ -62,11 +64,29 @@ export const materializeIntakesForDate = (
       doseUnits: rule.doseUnits,
       status: 'PENDING',
       takenAt: null,
-      source: 'SCHEDULED'
+      source: 'SCHEDULED',
+      stockEffectUnits: 0,
+      medicationName: '',
+      medicationDosage: '',
+      contextSource: 'RECORDED',
+      recordedAt: null
     }))
     .filter(intake => !existingIds.has(intake.id));
 
   return [...existingIntakes, ...newIntakes];
+};
+
+/** DST-разрыв переносится к первому существующему времени; повтор выбирает первый instant. */
+export const resolveScheduledDate = (dateKey: string, time: string): Date | null => {
+  if (!isDateKey(dateKey) || !isTime(time)) return null;
+  const direct = fromLocalDateTime(dateKey, time);
+  if (direct) return direct;
+  const startMinute = Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
+  for (let minute = startMinute + 1; minute < 1440; minute += 1) {
+    const candidate = fromLocalDateTime(dateKey, `${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`);
+    if (candidate) return candidate;
+  }
+  return null;
 };
 
 /** Возвращает будущие срабатывания правила в пределах rolling window. */
@@ -81,7 +101,7 @@ export const getUpcomingRuleDates = (
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
     if (!isRuleActiveOnDate(rule, date)) continue;
 
-    const scheduledAt = fromLocalDateTime(getLocalDateKey(date), rule.time);
+    const scheduledAt = resolveScheduledDate(getLocalDateKey(date), rule.time);
     if (scheduledAt && scheduledAt.getTime() > now.getTime()) result.push(scheduledAt);
   }
 

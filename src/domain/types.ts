@@ -35,6 +35,11 @@ export type Intake = {
   status: IntakeStatus;
   takenAt: string | null;
   source: 'SCHEDULED' | 'MANUAL';
+  stockEffectUnits: number | null;
+  medicationName: string;
+  medicationDosage: string;
+  contextSource: 'RECORDED' | 'LEGACY';
+  recordedAt: string | null;
 };
 
 export type PilloSettings = {
@@ -58,3 +63,30 @@ export const emptySnapshot: PilloSnapshot = {
     theme: 'SYSTEM'
   }
 };
+
+export type MedicationInput = Pick<Medication,
+  'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>;
+
+export type CalendarCoverage = { from: string; through: string };
+
+export type PilloDocument = {
+  schemaVersion: 2;
+  revision: number;
+  snapshot: PilloSnapshot;
+  calendarCoverage: CalendarCoverage[];
+  notifications: {
+    desiredRevision: number;
+    appliedRevision: number;
+    coverageEndsAt: string | null;
+  };
+  recentCommandIds: string[];
+};
+
+export const createDocument = (snapshot: PilloSnapshot = emptySnapshot): PilloDocument => ({
+  schemaVersion: 2,
+  revision: 0,
+  snapshot,
+  calendarCoverage: [],
+  notifications: { desiredRevision: 0, appliedRevision: -1, coverageEndsAt: null },
+  recentCommandIds: []
+});
