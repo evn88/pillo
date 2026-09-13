@@ -95,11 +95,11 @@ export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColo
       </Pressable>
       <Animated.View style={{ transform: [{ translateX }] }} {...panResponder?.panHandlers}>
         <Pressable
-          accessibilityActions={[{ name: 'activate', label: 'Изменить' }, { name: 'delete', label: 'Удалить' }]}
+          accessibilityActions={[{ name: 'activate', label: 'Изменить' }, { name: 'delete', label: 'Удалить' }, { name: 'showActions', label: 'Показать действия' }]}
           accessibilityHint="Нажмите для редактирования. Смахните влево для удаления."
           accessibilityLabel={accessibilityLabel}
           accessibilityRole="button"
-          onAccessibilityAction={event => event.nativeEvent.actionName === 'delete' ? deleteCard() : handlePress()}
+          onAccessibilityAction={event => event.nativeEvent.actionName === 'delete' ? deleteCard() : event.nativeEvent.actionName === 'showActions' ? animateTo(-actionWidth) : handlePress()}
           onPress={handlePress}
         >
           {children}

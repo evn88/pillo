@@ -34,6 +34,12 @@ it('даёт карточке доступное имя и удаляет чер
   expect(card.props.accessibilityActions).toContainEqual({ name: 'delete', label: 'Удалить' });
 
   await act(async () => {
+    card.props.onAccessibilityAction({ nativeEvent: { actionName: 'showActions' } });
+  });
+  expect(onDelete).not.toHaveBeenCalled();
+  expect(onPress).not.toHaveBeenCalled();
+
+  await act(async () => {
     card.props.onAccessibilityAction({ nativeEvent: { actionName: 'delete' } });
   });
 

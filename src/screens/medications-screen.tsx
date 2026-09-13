@@ -40,7 +40,7 @@ const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelet
       )}
       onDelete={() => onDelete(medication.id)}
       onPress={() => onEdit(medication)}
-      style={[styles.gridCardContainer, isGrid ? styles.gridCardContainerWide : styles.gridCardContainerSingle]}
+      style={[styles.gridCardContainer, { borderWidth: 1, borderColor: isLowStock ? palette.warning : palette.border }, isGrid ? styles.gridCardContainerWide : styles.gridCardContainerSingle]}
     >
       <Surface palette={palette} style={[styles.gridCard, styles.cardWithFooter, isLowStock ? { borderColor: palette.warning } : undefined]}>
         <View style={[styles.cardHeader, isLargeText && styles.cardHeaderLarge]}>
@@ -161,8 +161,8 @@ const styles = StyleSheet.create({
   stockBadgeText: { fontSize: 13, fontWeight: '800' },
   progressTrack: { borderRadius: radii.pill, height: 6, overflow: 'hidden' },
   progressFill: { borderRadius: radii.pill, height: '100%' },
-  cardWithFooter: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, borderBottomWidth: 0 },
-  cardFooter: { borderBottomLeftRadius: radii.lg, borderBottomRightRadius: radii.lg, borderTopWidth: 0, borderWidth: 1, padding: spacing.md },
+  cardWithFooter: { borderRadius: 0, borderWidth: 0 },
+  cardFooter: { padding: spacing.md },
   cardActions: { flexDirection: 'row', gap: spacing.sm },
   cardActionsLarge: { flexDirection: 'column' }
 });
