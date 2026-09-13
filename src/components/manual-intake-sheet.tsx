@@ -9,6 +9,7 @@ import { colors, radii, spacing } from '@/theme/tokens';
 import { ActionButton } from './ui';
 
 type ManualIntakeSheetProps = {
+  initialMedicationId?: string;
   isDark: boolean;
   medications: Medication[];
   onClose: () => void;
@@ -16,11 +17,14 @@ type ManualIntakeSheetProps = {
   visible: boolean;
 };
 
-export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visible }: ManualIntakeSheetProps) => {
+export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, onClose, onSave, visible }: ManualIntakeSheetProps) => {
   const palette = isDark ? colors.dark : colors.light;
-  const [medicationId, setMedicationId] = useState(medications[0]?.id ?? '');
+  const [medicationId, setMedicationId] = useState(initialMedicationId ?? medications[0]?.id ?? '');
   const [dose, setDose] = useState('1');
   const { isPending, error, submit } = useFormCommand();
+  const selectedMedication = medications.find(medication => medication.id === medicationId);
+  const previewDose = Number(dose.trim().replace(',', '.'));
+  const hasStockDiscrepancy = selectedMedication && Number.isFinite(previewDose) && previewDose > selectedMedication.stockUnits;
 
   const handleSave = async () => {
     if (!medicationId || isPending) return;
@@ -39,8 +43,8 @@ export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visibl
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.heading}>
             <View style={styles.headingCopy}>
-              <Text style={[styles.title, { color: palette.text }]}>Ручная отметка приёма</Text>
-              <Text style={[styles.description, { color: palette.textMuted }]}>Используйте этот сценарий, если приняли препарат вне расписания.</Text>
+              <Text style={[styles.title, { color: palette.text }]}>{initialMedicationId ? 'Принять сейчас' : 'Ручная отметка приёма'}</Text>
+              <Text style={[styles.description, { color: palette.textMuted }]}>{initialMedicationId ? 'Укажите фактически принятую дозу. Она будет списана из учётного запаса.' : 'Используйте этот сценарий, если приняли препарат вне расписания.'}</Text>
             </View>
             <ActionButton label="Закрыть" onPress={onClose} palette={palette} tone="secondary" />
           </View>
@@ -48,7 +52,7 @@ export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visibl
           <View style={styles.field}>
             <Text style={[styles.label, { color: palette.text }]}>Препарат</Text>
             <View accessibilityRole="radiogroup" style={styles.options}>
-              {medications.map(medication => {
+              {medications.filter(medication => !initialMedicationId || medication.id === initialMedicationId).map(medication => {
                 const selected = medication.id === medicationId;
 
                 return (
@@ -56,7 +60,7 @@ export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visibl
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selected }}
                     key={medication.id}
-                    onPress={() => setMedicationId(medication.id)}
+                    onPress={initialMedicationId ? undefined : () => setMedicationId(medication.id)}
                     style={({ pressed }) => [
                       styles.option,
                       {
@@ -73,6 +77,12 @@ export const ManualIntakeSheet = ({ isDark, medications, onClose, onSave, visibl
               })}
             </View>
           </View>
+
+          {hasStockDiscrepancy ? (
+            <View accessibilityRole="alert" style={[styles.warning, { backgroundColor: palette.warningSoft }]}>
+              <Text style={[styles.warningText, { color: palette.warning }]}>Учётный запас меньше указанной дозы: {selectedMedication.stockUnits} из {previewDose} ед. Приём сохранится, а остаток станет 0. Проверьте фактический запас и скорректируйте карточку препарата.</Text>
+            </View>
+          ) : null}
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: palette.text }]}>Количество</Text>
@@ -120,5 +130,7 @@ const styles = StyleSheet.create({
   input: { borderRadius: radii.md, borderWidth: 1, fontSize: 18, minHeight: 56, paddingHorizontal: spacing.lg },
   hint: { fontSize: 13, lineHeight: 19 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, justifyContent: 'flex-end' },
-  pressed: { opacity: 0.7 }
+  pressed: { opacity: 0.7 },
+  warning: { borderRadius: radii.md, padding: spacing.lg },
+  warningText: { fontSize: 14, fontWeight: '700', lineHeight: 20 }
 });

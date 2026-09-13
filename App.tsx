@@ -22,12 +22,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MedicationForm } from '@/components/medication-form';
 import { HistorySheet } from '@/components/history-sheet';
 import { ManualIntakeSheet } from '@/components/manual-intake-sheet';
+import { LegacyStockReturnSheet } from '@/components/legacy-stock-return-sheet';
 import { ScheduleForm } from '@/components/schedule-form';
 import { NativeHistoryButton, NativePrimaryButton } from '@/components/native-action-button';
 import { SwipeableCard } from '@/components/swipeable-card';
 import { ActionButton, Surface } from '@/components/ui';
 import { getLocalDateKey } from '@/domain/schedule';
-import type { Medication, PilloSettings, ScheduleRule } from '@/domain/types';
+import type { Intake, Medication, PilloSettings, ScheduleRule } from '@/domain/types';
 import { usePilloContext } from '@/providers/pillo-provider';
 import { colors, radii, spacing } from '@/theme/tokens';
 
@@ -72,6 +73,7 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
   const [isScheduleFormOpen, setScheduleFormOpen] = useState(false);
   const [isHistoryOpen, setHistoryOpen] = useState(false);
   const [isManualIntakeOpen, setManualIntakeOpen] = useState(false);
+  const [quickIntakeMedication, setQuickIntakeMedication] = useState<Medication | null>(null);
 
   const theme = snapshot.settings.theme;
   const isDark = theme === 'DARK' || (theme === 'SYSTEM' && colorScheme === 'dark');
@@ -150,7 +152,10 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
                 isTablet={isTablet}
                 onOpenHistory={() => setHistoryOpen(true)}
                 onOpenMedications={() => router.navigate('/medications')}
-                onOpenManualIntake={() => setManualIntakeOpen(true)}
+                onOpenManualIntake={() => {
+                  setQuickIntakeMedication(null);
+                  setManualIntakeOpen(true);
+                }}
                 palette={palette}
                 snapshot={snapshot}
                 onStatusChange={setIntakeStatus}
@@ -172,7 +177,10 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
                   setEditingMedication(medication);
                   setMedicationFormOpen(true);
                 }}
-                onTakeNow={takeMedicationNow}
+                onTakeNow={medication => {
+                  setQuickIntakeMedication(medication);
+                  setManualIntakeOpen(true);
+                }}
                 palette={palette}
               />
             ) : null}
@@ -242,10 +250,14 @@ export const PilloApplication = ({ activeTab }: { activeTab: PilloTab }) => {
         />
       ) : null}
       <ManualIntakeSheet
+        initialMedicationId={quickIntakeMedication?.id}
         isDark={isDark}
-        key={isManualIntakeOpen ? 'manual-open' : 'manual-closed'}
+        key={isManualIntakeOpen ? `manual-open:${quickIntakeMedication?.id ?? 'select'}` : 'manual-closed'}
         medications={snapshot.medications}
-        onClose={() => setManualIntakeOpen(false)}
+        onClose={() => {
+          setManualIntakeOpen(false);
+          setQuickIntakeMedication(null);
+        }}
         onSave={takeMedicationNow}
         visible={isManualIntakeOpen}
       />
@@ -278,7 +290,7 @@ const TodayScreen = ({
   onOpenHistory: () => void;
   onOpenManualIntake: () => void;
   onOpenMedications: () => void;
-  onStatusChange: (id: string, status: 'PENDING' | 'TAKEN' | 'SKIPPED') => Promise<CommandResult>;
+  onStatusChange: (id: string, status: 'PENDING' | 'TAKEN' | 'SKIPPED', legacyStockReturnUnits?: number, commandId?: string) => Promise<CommandResult>;
   palette: Palette;
   snapshot: PilloContextValue['snapshot'];
 }) => {
@@ -288,6 +300,16 @@ const TodayScreen = ({
     .filter(intake => intake.localDate === todayKey)
     .sort((a, b) => a.localTime.localeCompare(b.localTime));
   const lowStock = snapshot.medications.filter(medication => medication.stockUnits <= medication.minThresholdUnits);
+  const [legacyUndoIntake, setLegacyUndoIntake] = useState<Intake | null>(null);
+
+  const handleStatusChange = (intake: Intake, status: Intake['status']) => {
+    if (status === 'PENDING' && intake.status === 'TAKEN' && intake.stockEffectUnits === null) {
+      setLegacyUndoIntake(intake);
+      return;
+    }
+
+    void onStatusChange(intake.id, status);
+  };
 
   return (
     <View style={styles.screenRoot}>
@@ -307,6 +329,9 @@ const TodayScreen = ({
               {todayIntakes.map(intake => {
                 const medication = medicationById.get(intake.medicationId);
                 const isLowStock = medication ? medication.stockUnits <= medication.minThresholdUnits : false;
+                const hasStockDiscrepancy = intake.status === 'PENDING' && medication
+                  ? medication.stockUnits < intake.doseUnits
+                  : false;
                 return (
                   <Surface key={intake.id} palette={palette} style={isLowStock ? { borderColor: palette.warning } : undefined}>
                     <View style={styles.cardHeader}>
@@ -323,19 +348,23 @@ const TodayScreen = ({
                         </Text>
                       </View>
                     </View>
-                    {isLowStock ? (
+                    {isLowStock || hasStockDiscrepancy ? (
                       <View style={[styles.stockWarning, { backgroundColor: palette.warningSoft }]}>
-                        <Text style={[styles.stockWarningText, { color: palette.warning }]}>Запас подходит к концу · осталось {medication?.stockUnits ?? 0} ед.</Text>
+                        <Text accessibilityRole={hasStockDiscrepancy ? 'alert' : undefined} style={[styles.stockWarningText, { color: palette.warning }]}>
+                          {hasStockDiscrepancy
+                            ? `Учётный запас меньше дозы: ${medication?.stockUnits ?? 0} из ${intake.doseUnits} ед. При отметке остаток станет 0 — проверьте фактический запас.`
+                            : `Запас подходит к концу · осталось ${medication?.stockUnits ?? 0} ед.`}
+                        </Text>
                       </View>
                     ) : null}
                     <View style={styles.cardActions}>
                       {intake.status === 'PENDING' ? (
                         <>
-                          <ActionButton label="✓  Принял" onPress={() => void onStatusChange(intake.id, 'TAKEN')} palette={palette} />
-                          <ActionButton label="Пропустить" onPress={() => void onStatusChange(intake.id, 'SKIPPED')} palette={palette} tone="secondary" />
+                          <ActionButton label="✓  Принял" onPress={() => handleStatusChange(intake, 'TAKEN')} palette={palette} />
+                          <ActionButton label="Пропустить" onPress={() => handleStatusChange(intake, 'SKIPPED')} palette={palette} tone="secondary" />
                         </>
                       ) : (
-                        <ActionButton label="Отменить отметку" onPress={() => void onStatusChange(intake.id, 'PENDING')} palette={palette} tone="secondary" />
+                        <ActionButton label="Отменить отметку" onPress={() => handleStatusChange(intake, 'PENDING')} palette={palette} tone="secondary" />
                       )}
                     </View>
                   </Surface>
@@ -366,11 +395,20 @@ const TodayScreen = ({
         <NativeHistoryButton isDark={isDark} onPress={onOpenHistory} tintColor={palette.primary} />
         </View>
       </View>
+      {legacyUndoIntake ? (
+        <LegacyStockReturnSheet
+          intake={legacyUndoIntake}
+          isDark={isDark}
+          medication={medicationById.get(legacyUndoIntake.medicationId)}
+          onClose={() => setLegacyUndoIntake(null)}
+          onConfirm={(quantity, commandId) => onStatusChange(legacyUndoIntake.id, 'PENDING', quantity, commandId)}
+        />
+      ) : null}
     </View>
   );
 };
 
-const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete, onEdit, onTakeNow, palette }: { isDark: boolean; medications: Medication[]; onAdd: () => void; onAddPackage: (id: string) => Promise<CommandResult>; onDelete: (medication: Medication) => void; onEdit: (medication: Medication) => void; onTakeNow: (id: string, dose: number) => Promise<CommandResult>; palette: Palette }) => (
+const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete, onEdit, onTakeNow, palette }: { isDark: boolean; medications: Medication[]; onAdd: () => void; onAddPackage: (id: string) => Promise<CommandResult>; onDelete: (medication: Medication) => void; onEdit: (medication: Medication) => void; onTakeNow: (medication: Medication) => void; palette: Palette }) => (
   <View style={styles.screenRoot}>
     <ScrollView contentContainerStyle={[styles.screenContent, styles.screenWithFloatingActions]}>
       <Text style={[styles.eyebrow, { color: palette.textMuted }]}>МОИ ПРЕПАРАТЫ</Text>
@@ -401,7 +439,7 @@ const MedicationsScreen = ({ isDark, medications, onAdd, onAddPackage, onDelete,
                 <View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} />
               </View>
               <View style={styles.cardActions}>
-                <ActionButton label="Принять сейчас" onPress={() => void onTakeNow(medication.id, 1)} palette={palette} tone="secondary" />
+                <ActionButton label="Принять сейчас" onPress={() => onTakeNow(medication)} palette={palette} tone="secondary" />
                 <ActionButton label="＋ Упаковка" onPress={() => void onAddPackage(medication.id)} palette={palette} />
               </View>
             </Surface>
