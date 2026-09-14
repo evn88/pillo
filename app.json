@@ -37,6 +37,7 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
+      "./plugins/with-local-notifications.cjs",
       "expo-notifications",
       [
         "expo-splash-screen",
