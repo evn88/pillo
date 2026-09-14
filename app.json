@@ -12,11 +12,6 @@
       "android"
     ],
     "icon": "./assets/icon-pilldan.png",
-    "splash": {
-      "image": "./assets/splash-icon-pilldan.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#17104F"
-    },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -43,7 +38,18 @@
       "expo-router",
       "expo-sqlite",
       "expo-notifications",
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#14161D",
+          "image": "./assets/splash-icon-pilldan.png",
+          "imageWidth": 160,
+          "dark": {
+            "backgroundColor": "#14161D",
+            "image": "./assets/splash-icon-pilldan.png"
+          }
+        }
+      ],
       [
         "expo-image-picker",
         {
@@ -52,6 +58,7 @@
           "microphonePermission": false
         }
       ]
-    ]
+    ],
+    "backgroundColor": "#14161D"
   }
 }
