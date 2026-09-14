@@ -1,4 +1,5 @@
-import { Platform, StyleSheet } from 'react-native';
+import { AppSymbol } from './app-symbol';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 import { Button as UniversalButton, Host as UniversalHost } from '@expo/ui';
 import { Button as SwiftUIButton, Host as SwiftUIHost } from '@expo/ui/swift-ui';
 import {
@@ -21,6 +22,9 @@ type NativeActionButtonProps = {
   fill?: boolean;
   fullWidth?: boolean;
   isDark: boolean;
+  iconOnly?: boolean;
+  toolbar?: boolean;
+  role?: 'cancel';
   label: string;
   onPress: () => void;
   tintColor: string;
@@ -35,6 +39,9 @@ export const NativeActionButton = ({
   fill = false,
   fullWidth = false,
   isDark,
+  iconOnly = false,
+  toolbar = false,
+  role,
   label,
   onPress,
   systemImage,
@@ -42,7 +49,7 @@ export const NativeActionButton = ({
   tone = 'primary'
 }: NativeActionButtonProps) => {
   const isDanger = tone === 'danger';
-  const hostStyle = [styles.host, fullWidth && styles.fullWidthHost, fill && styles.fillHost];
+  const hostStyle = [styles.host, fullWidth && styles.fullWidthHost, fill && styles.fillHost, iconOnly && styles.iconOnlyHost];
   const buttonFrame = fullWidth || fill
     ? frame({ maxWidth: 1000, minHeight: 44 })
     : frame({ minHeight: 44 });
@@ -53,22 +60,29 @@ export const NativeActionButton = ({
         <SwiftUIButton
           label={label}
           onPress={onPress}
-          role={isDanger ? 'destructive' : undefined}
+          role={isDanger ? 'destructive' : role}
           systemImage={systemImage}
           modifiers={[
-            buttonStyle(tone === 'primary' ? (Number(Platform.Version) >= 26 ? 'glassProminent' : 'borderedProminent') : tone === 'secondary' ? 'bordered' : 'borderless'),
-            buttonBorderShape('capsule'),
-            controlSize(compact ? 'regular' : 'large'),
+            buttonStyle(tone === 'primary' ? (Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glassProminent' : 'borderedProminent') : tone === 'secondary' ? (toolbar && Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glass' : 'bordered') : 'borderless'),
+            buttonBorderShape(iconOnly ? 'circle' : 'capsule'),
+            controlSize(compact && !toolbar ? 'regular' : 'large'),
             disabledModifier(disabled),
-            buttonFrame,
+            iconOnly ? frame({ width: 44, height: 44 }) : buttonFrame,
+            ...(iconOnly ? [labelStyle('iconOnly')] : []),
             tint(tintColor),
             accessibilityLabel(accessibilityText ?? label),
-            ...(tone === 'primary' ? [foregroundStyle(disabled ? (isDark ? '#FFFFFF' : '#343434') : isDark ? '#343434' : '#FFFFFF')] : [])
+            ...(tone === 'primary' && !disabled ? [foregroundStyle(disabled ? (isDark ? '#FFFFFF' : '#343434') : isDark ? '#343434' : '#FFFFFF')] : [])
           ]}
         />
       </SwiftUIHost>
     );
   }
+
+  if (iconOnly) return <Pressable accessibilityRole="button" accessibilityLabel={accessibilityText ?? label}
+    accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
+    style={({ pressed }) => [styles.iconOnlyHost, { alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.4 : pressed ? 0.7 : 1 }]}>
+    <AppSymbol name={systemImage ?? 'arrow.uturn.backward'} fallback={label} color={tintColor} />
+  </Pressable>;
 
   return (
     <UniversalHost colorScheme={isDark ? 'dark' : 'light'} matchContents={!fullWidth && !fill} seedColor={tintColor} style={hostStyle}>
@@ -105,7 +119,7 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
           onPress={onPress}
           systemImage="clock.arrow.circlepath"
           modifiers={[
-            buttonStyle('glass'),
+            buttonStyle(Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glass' : 'bordered'),
             buttonBorderShape('circle'),
             controlSize('extraLarge'),
             frame({ width: 56, height: 48 }),
@@ -127,6 +141,7 @@ export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeA
 
 const styles = StyleSheet.create({
   host: { minHeight: 48 },
+  iconOnlyHost: { width: 48, height: 48, flexShrink: 0 },
   fullWidthHost: { alignSelf: 'stretch' },
   fillHost: { flex: 1 },
   iconHost: { height: 60, width: 60 },

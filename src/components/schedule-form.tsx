@@ -79,8 +79,8 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
     <Modal animationType="slide" onRequestClose={handleClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView behavior={Platform.OS === 'android' ? 'height' : undefined} style={[styles.modal, { backgroundColor: palette.background }]}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-        <ActionButton label="Отмена" onPress={handleClose} palette={palette} tone="secondary" />
-        <ActionButton
+        <ActionButton toolbar role="cancel" disabled={isPending} label="Отмена" onPress={handleClose} palette={palette} tone="secondary" />
+        <ActionButton toolbar
           disabled={isPending}
           label={isPending ? 'Сохраняем…' : 'Сохранить'}
           onPress={() => void handleSave()}
@@ -130,7 +130,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Время</Text>
             <Controller control={control} name="time" render={({ field }) => (
-              <ScheduleDateInput time isDark={isDark} label="Время приёма" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
+              <ScheduleDateInput disabled={isPending} time isDark={isDark} label="Время приёма" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
             )} />
             {errors.time?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.time.message}</Text> : null}
           </View>
@@ -158,11 +158,12 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
                 return (
                   <Pressable
                     accessibilityRole="checkbox"
-                    accessibilityState={{ checked }}
+                    disabled={isPending}
+                    accessibilityState={{ checked, disabled: isPending }}
                     android_ripple={{ color: palette.primarySoft, borderless: true }}
                     key={day.value}
                     onPress={() => field.onChange(checked ? field.value.filter(value => value !== day.value) : [...field.value, day.value])}
-                    style={[styles.day, { backgroundColor: palette.surfaceMuted }, checked && { backgroundColor: palette.primary }]}
+                    style={({ pressed }) => [styles.day, { opacity: isPending ? 0.4 : pressed ? 0.7 : 1 }, { backgroundColor: palette.surfaceMuted }, checked && { backgroundColor: palette.primary }]}
                   >
                     <Text style={{ color: checked ? palette.surface : palette.text, fontWeight: '700' }}>{day.label}</Text>
                   </Pressable>
@@ -177,14 +178,14 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Начало курса</Text>
             <Controller control={control} name="startDate" render={({ field }) => (
-              <ScheduleDateInput  isDark={isDark} label="Дата начала курса" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
+              <ScheduleDateInput disabled={isPending}  isDark={isDark} label="Дата начала курса" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
             )} />
             {errors.startDate?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.startDate.message}</Text> : null}
           </View>
           <View style={[styles.field, styles.half]}>
             <Text style={[styles.label, { color: palette.text }]}>Окончание</Text>
             <Controller control={control} name="endDate" render={({ field }) => (
-              <ScheduleDateInput optional isDark={isDark} label="Дата окончания курса" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
+              <ScheduleDateInput disabled={isPending} optional isDark={isDark} label="Дата окончания курса" onBlur={field.onBlur} onChange={field.onChange} value={field.value} />
             )} />
             {errors.endDate?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.endDate.message}</Text> : null}
           </View>
@@ -193,7 +194,7 @@ export const ScheduleForm = ({ isDark, medications, onClose, onSave, rule, newId
         <View style={styles.field}>
           <Text style={[styles.label, { color: palette.text }]}>Комментарий</Text>
           <Controller control={control} name="comment" render={({ field }) => (
-            <TextInput accessibilityHint={errors.comment?.message} accessibilityLabel="Комментарий к приёму" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('comment')} value={field.value} />
+            <TextInput editable={!isPending} accessibilityHint={errors.comment?.message} accessibilityLabel="Комментарий к приёму" clearButtonMode="while-editing" keyboardAppearance={isDark ? 'dark' : 'light'} onBlur={field.onBlur} onChangeText={field.onChange} selectionColor={palette.primary} style={inputStyle('comment')} value={field.value} />
           )} />
           {errors.comment?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.comment.message}</Text> : null}
         </View>

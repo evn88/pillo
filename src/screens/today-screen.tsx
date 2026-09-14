@@ -78,10 +78,11 @@ export const TodayScreen = ({ focusedIntakeId, isLargeText }: { focusedIntakeId?
                       accessibilityText={`Принять ${medication?.name ?? 'препарат'} в дозе ${formatDose(intake.doseUnits)}`}
                       disabled={isSaving || !medication} isDark={isDark} items={[]}
                       onPress={() => void takeScheduledIntake(intake.id, intake.doseUnits)} tintColor={palette.primary}
-                    /> : null}
+                    /> : <ActionButton compact iconOnly systemImage="arrow.uturn.backward"
+                      accessibilityText={`Отменить отметку приёма ${medication?.name ?? intake.medicationName}`}
+                      disabled={isSaving} label="Отменить отметку" onPress={() => changeStatus(intake, 'PENDING')} palette={palette} tone="secondary" />}
                   </View>
                   {isLowStock || hasStockDiscrepancy ? <View style={[styles.stockWarning, { backgroundColor: palette.warningSoft }]}><Text accessibilityRole={hasStockDiscrepancy ? 'alert' : undefined} style={[styles.stockWarningText, { color: palette.warning }]}>{hasStockDiscrepancy ? `Учётный запас меньше дозы: ${medication?.stockUnits ?? 0} из ${intake.doseUnits} ед. При отметке остаток станет 0 — проверьте фактический запас.` : `Запас подходит к концу · осталось ${medication?.stockUnits ?? 0} ед.`}</Text></View> : null}
-                  {intake.status !== 'PENDING' ? <View style={styles.cardActions}><ActionButton compact disabled={isSaving} label="Отменить отметку" onPress={() => changeStatus(intake, 'PENDING')} palette={palette} tone="secondary" /></View> : null}
                 </Surface>;
                 return intake.status === 'PENDING' ? <SwipeActionsRow key={intake.id}
                   actions={intakeMenu(intake)} backgroundColor={palette.surface} disabled={isSaving || !medication}

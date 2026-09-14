@@ -49,7 +49,7 @@ export const LegacyStockReturnSheet = ({
   return (
     <Modal
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={() => { if (!isPending) onClose(); }}
       presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'}
       visible
     >
@@ -58,8 +58,8 @@ export const LegacyStockReturnSheet = ({
         style={[styles.container, { backgroundColor: palette.background }]}
       >
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-          <ActionButton label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
-          <ActionButton
+          <ActionButton toolbar role="cancel" disabled={isPending} label="Отмена" onPress={onClose} palette={palette} tone="secondary" />
+          <ActionButton toolbar
               disabled={isPending}
               label={isPending ? 'Сохраняем…' : 'Отменить отметку'}
               onPress={() => void handleConfirm()}
@@ -81,7 +81,7 @@ export const LegacyStockReturnSheet = ({
 
           <View style={styles.field}>
             <Text style={[styles.label, { color: palette.text }]}>Вернуть в запас</Text>
-            <TextInput
+            <TextInput editable={!isPending}
               accessibilityLabel="Количество для возврата в запас"
               keyboardAppearance={isDark ? 'dark' : 'light'}
               keyboardType="decimal-pad"

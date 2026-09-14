@@ -49,7 +49,7 @@ export const DoseInput = ({
               style={({ pressed }) => [
                 styles.preset,
                 { backgroundColor: selected ? palette.primary : palette.surfaceMuted, borderColor: selected ? palette.primary : palette.border },
-                pressed && styles.pressed
+                (pressed || disabled) && styles.pressed
               ]}
             >
               <Text style={[styles.presetText, { color: selected ? palette.surface : palette.text }]}>{preset.label}</Text>

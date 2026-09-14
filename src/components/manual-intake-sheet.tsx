@@ -60,10 +60,8 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'android' ? 'height' : undefined} style={[styles.container, { backgroundColor: palette.background }]}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Закрыть без сохранения" disabled={isPending} onPress={handleClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-            <Text style={[styles.closeText, { color: palette.textMuted }]}>Закрыть</Text>
-          </Pressable>
-          <ActionButton
+          <ActionButton toolbar role="cancel" accessibilityText="Закрыть без сохранения" label="Закрыть" disabled={isPending} onPress={handleClose} palette={palette} tone="secondary" />
+          <ActionButton toolbar
               disabled={isPending || !selectedMedication}
               label={isPending ? 'Сохраняем…' : 'Записать приём'}
               onPress={() => void handleSave()}
@@ -115,9 +113,7 @@ export const ManualIntakeSheet = ({ initialMedicationId, isDark, medications, on
             )} />
             <Text style={[styles.hint, { color: palette.textMuted }]}>{selectedMedication ? 'Нажмите, чтобы выбрать другой препарат.' : 'Выберите препарат из добавленных ранее. Поиск откроется отдельно.'}</Text>
             {!medications.length ? (
-              <Pressable accessibilityRole="button" disabled={isPending} onPress={() => { handleClose(); router.navigate('/medications'); }} style={styles.closeButton}>
-                <Text style={[styles.link, { color: palette.primary }]}>Открыть препараты</Text>
-              </Pressable>
+              <ActionButton disabled={isPending} label="Открыть препараты" onPress={() => { handleClose(); router.navigate('/medications'); }} palette={palette} tone="secondary" />
             ) : null}
             {errors.medicationId?.message ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{errors.medicationId.message}</Text> : null}
           </View>

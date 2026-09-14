@@ -7,8 +7,8 @@ import { medication } from '../../domain/__tests__/fixtures';
 vi.mock('expo-router', () => ({ router: { navigate: vi.fn() } }));
 vi.mock('../app-symbol', () => ({ AppSymbol: () => null }));
 vi.mock('../native-action-button', () => ({
-  NativeActionButton: ({ disabled, label, onPress }: { disabled?: boolean; label: string; onPress: () => void }) => (
-    <Pressable accessibilityLabel={label} disabled={disabled} onPress={onPress}><Text>{label}</Text></Pressable>
+  NativeActionButton: ({ accessibilityText, disabled, label, onPress }: { accessibilityText?: string; disabled?: boolean; label: string; onPress: () => void }) => (
+    <Pressable accessibilityLabel={accessibilityText ?? label} disabled={disabled} onPress={onPress}><Text>{label}</Text></Pressable>
   )
 }));
 vi.mock('../../hooks/use-form-command', () => ({

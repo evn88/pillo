@@ -14,6 +14,7 @@ vi.mock('@expo/ui/swift-ui', () => ({
 }));
 
 vi.mock('@expo/ui/swift-ui/modifiers', () => ({
+  disabled: vi.fn(),
   pickerStyle: vi.fn(),
   tag: vi.fn(),
   tint: vi.fn()

@@ -1,5 +1,5 @@
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { CommandResult } from '@/application/contracts';
 import type { Intake, Medication } from '@/domain/types';
@@ -39,13 +39,11 @@ export const ScheduledIntakeSheet = ({ intake, isDark, medication, onClose, onSa
   });
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible>
+    <Modal animationType="slide" onRequestClose={() => { if (!isPending) onClose(); }} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible>
       <KeyboardAvoidingView behavior={Platform.OS === 'android' ? 'height' : undefined} style={[styles.container, { backgroundColor: palette.background }]}>
         <View style={[styles.toolbar, { borderBottomColor: palette.border }]}>
-          <Pressable accessibilityLabel="Закрыть без отметки" accessibilityRole="button" disabled={isPending} onPress={onClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-            <Text style={[styles.closeText, { color: palette.textMuted }]}>Закрыть</Text>
-          </Pressable>
-          <ActionButton
+          <ActionButton toolbar role="cancel" accessibilityText="Закрыть без отметки" label="Закрыть" disabled={isPending} onPress={onClose} palette={palette} tone="secondary" />
+          <ActionButton toolbar
             disabled={isPending}
             label={isPending ? 'Отмечаем…' : 'Отметить приём'}
             onPress={() => void handleSave()}
@@ -87,7 +85,7 @@ export const ScheduledIntakeSheet = ({ intake, isDark, medication, onClose, onSa
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  toolbar: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', minHeight: 60, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
+  toolbar: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', minHeight: 60, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   closeButton: { justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.sm },
   closeText: { fontSize: 17 },
   content: { alignSelf: 'center', gap: spacing.xl, maxWidth: 600, padding: spacing.xl, paddingBottom: spacing.xxl * 2, width: '100%' },

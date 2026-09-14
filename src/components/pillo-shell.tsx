@@ -1,5 +1,6 @@
-import type { ReactNode } from 'react';
-import { ActivityIndicator, StatusBar as NativeStatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useEffect, type ReactNode } from 'react';
+import { useIsFocused } from 'expo-router';
+import { ActivityIndicator, Keyboard, StatusBar as NativeStatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,6 +15,8 @@ import { ActionButton } from './ui';
 export type PilloScreenLayout = { isDark: boolean; isLargeText: boolean; isTablet: boolean; palette: PilloPalette };
 
 export const PilloShell = ({ children }: { children: (layout: PilloScreenLayout) => ReactNode }) => {
+  const isFocused = useIsFocused();
+  useEffect(() => { if (!isFocused) Keyboard.dismiss(); }, [isFocused]);
   const { width } = useWindowDimensions();
   const { error, isSaving, retry, snapshot, status } = usePilloContext();
   const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
@@ -47,7 +50,8 @@ export const PilloShell = ({ children }: { children: (layout: PilloScreenLayout)
         {error ? <Text accessibilityRole="alert" style={{ color: palette.danger, padding: spacing.md }}>{error}</Text> : null}
         {isSaving ? <Text accessibilityLiveRegion="polite" style={{ color: palette.textMuted, padding: spacing.sm }}>Сохраняем…</Text> : null}
         <View style={[styles.contentFrame, { backgroundColor: palette.background }]}>
-          {children({ isDark, isLargeText, isTablet, palette })}
+          {/* Данные живут в провайдере; временный интерфейс вкладки начинается заново при возврате. */}
+          {isFocused ? children({ isDark, isLargeText, isTablet, palette }) : null}
         </View>
       </View>
     </SafeAreaView>

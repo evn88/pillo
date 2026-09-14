@@ -1,3 +1,4 @@
+import { ActionButton } from './ui';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View, type ListRenderItem } from 'react-native';
 
@@ -114,9 +115,7 @@ export const MedicationPickerSheet = ({ isDark, medications, onClose, onOpenMedi
             <Text style={[styles.title, { color: palette.text }]}>Выберите препарат</Text>
             <Text style={[styles.subtitle, { color: palette.textMuted }]}>Поиск работает по названию, дозировке и форме</Text>
           </View>
-          <Pressable accessibilityLabel="Закрыть выбор препарата" accessibilityRole="button" onPress={handleClose} style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}>
-            <Text style={[styles.closeText, { color: palette.primary }]}>Закрыть</Text>
-          </Pressable>
+          <ActionButton toolbar role="cancel" accessibilityText="Закрыть выбор препарата" label="Закрыть" onPress={handleClose} palette={palette} tone="secondary" />
         </View>
 
         <View style={styles.searchWrap}>
@@ -149,9 +148,7 @@ export const MedicationPickerSheet = ({ isDark, medications, onClose, onOpenMedi
               <Text style={[styles.emptyTitle, { color: palette.text }]}>{medications.length ? 'Ничего не найдено' : 'Препаратов пока нет'}</Text>
               <Text style={[styles.emptyCopy, { color: palette.textMuted }]}>{emptyCopy}</Text>
               {!medications.length ? (
-                <Pressable accessibilityRole="button" onPress={handleOpenMedications} style={({ pressed }) => [styles.openButton, { backgroundColor: palette.primarySoft }, pressed && styles.pressed]}>
-                  <Text style={[styles.openButtonText, { color: palette.primary }]}>Открыть препараты</Text>
-                </Pressable>
+                <ActionButton label="Открыть препараты" onPress={handleOpenMedications} palette={palette} tone="secondary" />
               ) : null}
             </View>
           )}

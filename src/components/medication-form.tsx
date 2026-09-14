@@ -1,5 +1,5 @@
 import { Host, Picker, Text as NativeText } from '@expo/ui/swift-ui';
-import { pickerStyle, tag, tint } from '@expo/ui/swift-ui/modifiers';
+import { disabled as disabledModifier, pickerStyle, tag, tint } from '@expo/ui/swift-ui/modifiers';
 import { Controller, useForm } from 'react-hook-form';
 import { useState, type ReactNode } from 'react';
 import {
@@ -63,7 +63,8 @@ const FieldError = ({ message, palette }: { message?: string; palette: Palette }
   <Text accessibilityRole="alert" style={[styles.fieldError, { color: palette.danger }]}>{message}</Text>
 ) : null;
 
-const StockField = ({ accessibilityLabel, description, error, label, onBlur, onChangeText, palette, value }: {
+const StockField = ({ disabled, accessibilityLabel, description, error, label, onBlur, onChangeText, palette, value }: {
+  disabled: boolean;
   accessibilityLabel: string;
   description: string;
   error?: string;
@@ -80,7 +81,7 @@ const StockField = ({ accessibilityLabel, description, error, label, onBlur, onC
         <Text style={[styles.stockDescription, { color: palette.textMuted }]}>{description}</Text>
       </View>
       <View style={[styles.quantityControl, { backgroundColor: palette.surfaceMuted, borderColor: error ? palette.danger : palette.border }]}>
-        <TextInput
+        <TextInput editable={!disabled}
           accessibilityHint={error}
           accessibilityLabel={accessibilityLabel}
           keyboardAppearance={palette === colors.dark ? 'dark' : 'light'}
@@ -140,8 +141,8 @@ export const MedicationForm = ({
   });
 
   const submitLabel = medication ? 'Готово' : 'Добавить';
-  const cancelAction = <ActionButton compact label="Отмена" onPress={onClose} palette={palette} tone="secondary" />;
-  const submitAction = <ActionButton
+  const cancelAction = <ActionButton toolbar role="cancel" disabled={isPending} compact label="Отмена" onPress={onClose} palette={palette} tone="secondary" />;
+  const submitAction = <ActionButton toolbar
     compact
     disabled={isPending}
     label={isPending ? (medication ? 'Сохраняем…' : 'Добавляем…') : submitLabel}
@@ -150,7 +151,7 @@ export const MedicationForm = ({
   />;
 
   return (
-    <Modal animationType="slide" onRequestClose={onClose} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
+    <Modal animationType="slide" onRequestClose={() => { if (!isPending) onClose(); }} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'android' ? 'height' : undefined}
         style={[styles.modal, { backgroundColor: palette.background }]}
@@ -158,13 +159,13 @@ export const MedicationForm = ({
         <View style={[styles.toolbar, isLargeText && styles.toolbarLarge, { borderBottomColor: palette.border }]}>
           {isLargeText ? <>
             <Text accessibilityRole="header" style={[styles.toolbarTitle, styles.toolbarTitleLarge, { color: palette.text }]}>
-              {medication ? 'Препарат' : 'Новый препарат'}
+              Препарат
             </Text>
             <View style={styles.toolbarActions}>{cancelAction}{submitAction}</View>
           </> : <>
             {cancelAction}
             <Text accessibilityRole="header" numberOfLines={1} style={[styles.toolbarTitle, { color: palette.text }]}>
-              {medication ? 'Препарат' : 'Новый препарат'}
+              Препарат
             </Text>
             {submitAction}
           </>}
@@ -189,7 +190,7 @@ export const MedicationForm = ({
             <View style={styles.field}>
               <Text style={[styles.label, { color: palette.text }]}>Название</Text>
               <Controller control={control} name="name" render={({ field }) => (
-                <TextInput
+                <TextInput editable={!isPending}
                   accessibilityHint={errors.name?.message}
                   accessibilityLabel="Название препарата"
                   autoCapitalize="sentences"
@@ -215,7 +216,7 @@ export const MedicationForm = ({
                 <Text style={[styles.optional, { color: palette.textMuted }]}>Необязательно</Text>
               </View>
               <Controller control={control} name="dosage" render={({ field }) => (
-                <TextInput
+                <TextInput editable={!isPending}
                   accessibilityHint={errors.dosage?.message}
                   accessibilityLabel="Дозировка"
                   clearButtonMode="while-editing"
@@ -254,10 +255,10 @@ export const MedicationForm = ({
                       <Host colorScheme={isDark ? 'dark' : 'light'} style={styles.nativePicker}>
                         <Picker
                           label="Выбрать форму"
-                          onSelectionChange={handleSelection}
+                          onSelectionChange={value => { if (!isPending) handleSelection(value); }}
                           selection={selectedValue}
                           systemImage="pills"
-                          modifiers={[pickerStyle('menu'), tint(palette.primary)]}
+                          modifiers={[disabledModifier(isPending), pickerStyle('menu'), tint(palette.primary)]}
                         >
                           {medicationForms.map(option => <NativeText key={option.value} modifiers={[tag(option.value)]}>{option.label}</NativeText>)}
                           <NativeText modifiers={[tag(customFormValue)]}>Другая…</NativeText>
@@ -270,7 +271,8 @@ export const MedicationForm = ({
                         const checked = option.value === selectedValue;
                         return <Pressable
                           accessibilityRole="radio"
-                          accessibilityState={{ checked }}
+                          disabled={isPending}
+                          accessibilityState={{ checked, disabled: isPending }}
                           key={option.value}
                           onPress={() => handleSelection(option.value)}
                           style={[styles.formOption, { backgroundColor: checked ? palette.primarySoft : palette.surfaceMuted }]}
@@ -280,7 +282,7 @@ export const MedicationForm = ({
                       })}
                     </View>
                   )}
-                  {isCustomForm ? <TextInput
+                  {isCustomForm ? <TextInput editable={!isPending}
                     accessibilityHint={errors.form?.message}
                     accessibilityLabel="Другая лекарственная форма"
                     autoFocus={!medication}
@@ -306,7 +308,7 @@ export const MedicationForm = ({
             title="Запас"
           >
             <Controller control={control} name="stockUnits" render={({ field }) => (
-              <StockField
+              <StockField disabled={isPending}
                 accessibilityLabel="Текущий остаток препарата"
                 description="Сколько осталось сейчас"
                 error={errors.stockUnits?.message}
@@ -319,7 +321,7 @@ export const MedicationForm = ({
             )} />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <Controller control={control} name="unitsPerPackage" render={({ field }) => (
-              <StockField
+              <StockField disabled={isPending}
                 accessibilityLabel="Количество единиц в упаковке"
                 description="Сколько добавлять за раз"
                 error={errors.unitsPerPackage?.message}
@@ -332,7 +334,7 @@ export const MedicationForm = ({
             )} />
             <View style={[styles.divider, { backgroundColor: palette.border }]} />
             <Controller control={control} name="minThresholdUnits" render={({ field }) => (
-              <StockField
+              <StockField disabled={isPending}
                 accessibilityLabel="Порог низкого запаса"
                 description="Когда показать предупреждение"
                 error={errors.minThresholdUnits?.message}

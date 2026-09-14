@@ -44,6 +44,18 @@ const createContext = (): PilloContextValue => ({
 });
 
 describe('Плановый приём', () => {
+  it('именованная кнопка возврата отменяет только выбранную отметку', async () => {
+    context.current = createContext();
+    context.current.snapshot.intakes = [{ ...intake, status: 'TAKEN', stockEffectUnits: 0.5 }];
+    let screen: ReturnType<typeof create>;
+    await act(async () => { screen = create(<TodayScreen isLargeText={false} />); });
+    const button = screen!.root.findAllByProps({ accessibilityLabel: `Отменить отметку приёма ${medication.name}` })[0]!;
+    await act(async () => { button.props.onPress(); });
+    expect(context.current.setIntakeStatus).toHaveBeenCalledExactlyOnceWith(intake.id, 'PENDING');
+    expect(context.current.takeScheduledIntake).not.toHaveBeenCalled();
+    await act(async () => { screen!.unmount(); });
+  });
+
   it('отдельное действие открывает ручной ввод даже при ожидающем расписании', async () => {
     context.current = createContext();
     let screen: ReturnType<typeof create>;

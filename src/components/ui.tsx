@@ -19,6 +19,9 @@ type Palette = {
 
 export const ActionButton = ({
   accessibilityText,
+  iconOnly,
+  toolbar,
+  role,
   compact,
   disabled,
   fill,
@@ -29,6 +32,9 @@ export const ActionButton = ({
   tone = 'primary'
 }: {
   accessibilityText?: string;
+  iconOnly?: boolean;
+  toolbar?: boolean;
+  role?: 'cancel';
   compact?: boolean;
   disabled?: boolean;
   fill?: boolean;
@@ -41,6 +47,9 @@ export const ActionButton = ({
   return (
     <NativeActionButton
       accessibilityText={accessibilityText}
+      iconOnly={iconOnly}
+      toolbar={toolbar}
+      role={role}
       compact={compact}
       disabled={disabled}
       fill={fill}
