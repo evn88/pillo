@@ -38,7 +38,7 @@ describe('Список препаратов', () => {
     await act(async () => { screen = create(<MedicationsScreen isLargeText={false} isTablet={false} />); });
 
     expect(screen!.root.findByType(FlatList).props.numColumns).toBe(1);
-    expect(screen!.root.findAllByType(Pressable).filter(node => node.props.accessibilityLabel === 'Записать приём препарата Омега 3')).toHaveLength(1);
+    expect(screen!.root.findAllByType(Pressable).filter(node => node.props.accessibilityLabel === 'Записать приём препарата Омега 3')).toHaveLength(0);
     const addPackageButton = screen!.root.findAllByType(Pressable).find(node => node.props.accessibilityLabel === 'Добавить упаковку препарата Омега 3');
     if (!addPackageButton) throw new Error('Не найдена кнопка добавления упаковки.');
     await act(async () => { addPackageButton.props.onPress(); });

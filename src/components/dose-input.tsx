@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, radii, spacing } from '@/theme/tokens';
@@ -27,14 +28,18 @@ export const DoseInput = ({
   value: string;
 }) => {
   const palette = isDark ? colors.dark : colors.light;
+  const [customRequested, setCustomRequested] = useState(false);
   const normalizedValue = Number(value.trim().replace(',', '.'));
+
+  const isPreset = dosePresets.some(preset => Number(preset.value.replace(',', '.')) === normalizedValue);
+  const showCustom = customRequested || !isPreset;
 
   return (
     <View style={styles.field}>
       <Text style={[styles.label, { color: palette.text }]}>{label}</Text>
       <View accessibilityLabel="Быстрый выбор дозы" accessibilityRole="radiogroup" style={styles.presets}>
         {dosePresets.map(preset => {
-          const selected = Number.isFinite(normalizedValue) && normalizedValue === Number(preset.value.replace(',', '.'));
+          const selected = !showCustom && Number.isFinite(normalizedValue) && normalizedValue === Number(preset.value.replace(',', '.'));
           return (
             <Pressable
               accessibilityLabel={preset.accessibilityLabel}
@@ -43,6 +48,7 @@ export const DoseInput = ({
               disabled={disabled}
               key={preset.value}
               onPress={() => {
+                setCustomRequested(false);
                 onChange(preset.value);
                 onBlur();
               }}
@@ -56,9 +62,16 @@ export const DoseInput = ({
             </Pressable>
           );
         })}
+        <Pressable accessibilityLabel="Другое количество" accessibilityRole="radio"
+          accessibilityState={{ checked: showCustom, disabled }} disabled={disabled}
+          onPress={() => setCustomRequested(true)}
+          style={({ pressed }) => [styles.preset, { backgroundColor: showCustom ? palette.primary : palette.surfaceMuted, borderColor: showCustom ? palette.primary : palette.border }, (pressed || disabled) && styles.pressed]}>
+          <Text style={[styles.presetText, { color: showCustom ? palette.surface : palette.text }]}>Другое</Text>
+        </Pressable>
       </View>
-      <View style={[styles.inputControl, { backgroundColor: palette.surface, borderColor: error ? palette.danger : palette.border }]}>
+      {showCustom ? <View style={[styles.inputControl, { backgroundColor: palette.surface, borderColor: error ? palette.danger : palette.border }]}>
         <TextInput
+          autoFocus={customRequested}
           accessibilityHint={error}
           accessibilityLabel="Количество препарата"
           editable={!disabled}
@@ -73,8 +86,8 @@ export const DoseInput = ({
           value={value}
         />
         <Text style={[styles.unit, { color: palette.textMuted }]}>ед.</Text>
-      </View>
-      <Text style={[styles.hint, { color: palette.textMuted }]}>Выберите ¼, ½, 1, 2 или введите своё количество.</Text>
+      </View> : null}
+      <Text style={[styles.hint, { color: palette.textMuted }]}>Для произвольного количества выберите «Другое».</Text>
       {error ? <Text accessibilityRole="alert" style={[styles.error, { color: palette.danger }]}>{error}</Text> : null}
     </View>
   );
@@ -90,8 +103,8 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     justifyContent: 'center',
     minHeight: 44,
-    minWidth: 56,
-    paddingHorizontal: spacing.lg
+    minWidth: 44,
+    paddingHorizontal: spacing.md
   },
   presetText: { fontSize: 18, fontWeight: '700' },
   inputControl: { alignItems: 'center', borderRadius: radii.md, borderWidth: 1, flexDirection: 'row', minHeight: 54, paddingHorizontal: spacing.lg },

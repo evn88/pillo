@@ -34,7 +34,7 @@ describe('Ручной приём', () => {
     expect(screen!.root.findByProps({ accessibilityLabel: 'Выбран препарат Другой препарат. Изменить' })).toBeTruthy();
     expect(screen!.root.findAllByProps({ accessibilityLabel: secondLabel })).toHaveLength(0);
     await act(async () => {
-      screen!.root.findByProps({ accessibilityLabel: 'Количество препарата' }).props.onChangeText('0,5');
+      screen!.root.findByProps({ accessibilityLabel: 'Половина единицы' }).props.onPress();
     });
     await act(async () => { screen!.root.findByProps({ accessibilityLabel: 'Записать приём' }).props.onPress(); });
     expect(onSave).toHaveBeenCalledWith('m2', 0.5, 'test-command');

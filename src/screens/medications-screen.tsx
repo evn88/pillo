@@ -3,7 +3,6 @@ import { useCallback, useState } from 'react';
 import { ScreenActions } from '@/components/screen-actions';
 import { Alert, FlatList, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
 
-import { ManualIntakeSheet } from '@/components/manual-intake-sheet';
 import { MedicationForm } from '@/components/medication-form';
 import { SwipeableCard } from '@/components/swipeable-card';
 import { ActionButton, Surface } from '@/components/ui';
@@ -19,11 +18,11 @@ type MedicationCardProps = {
   onAddPackage: (medicationId: string) => void;
   onDelete: (medicationId: string) => void;
   onEdit: (medication: Medication) => void;
-  onQuickIntake: (medication: Medication) => void;
+  disabled: boolean;
   palette: PilloPalette;
 };
 
-const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelete, onEdit, onQuickIntake, palette }: MedicationCardProps) => {
+const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelete, onEdit, disabled, palette }: MedicationCardProps) => {
   const isLowStock = medication.stockUnits <= medication.minThresholdUnits;
   const packageSize = Math.max(1, medication.unitsPerPackage);
   const progress = Math.min(100, Math.round((medication.stockUnits / packageSize) * 100));
@@ -33,9 +32,19 @@ const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelet
       accessibilityLabel={`Изменить препарат ${medication.name}`}
       deleteColor={palette.danger}
       footer={(
-        <View style={[styles.cardActions, styles.cardFooter, isLargeText && styles.cardActionsLarge, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-          <ActionButton accessibilityText={`Записать приём препарата ${medication.name}`} compact fill label="Отметить" onPress={() => onQuickIntake(medication)} palette={palette} systemImage="checkmark.circle" tone="secondary" />
-          <ActionButton accessibilityText={`Добавить упаковку препарата ${medication.name}`} compact fill label="Упаковка" onPress={() => onAddPackage(medication.id)} palette={palette} systemImage="shippingbox" tone="secondary" />
+        <View style={[styles.stockBlock, { backgroundColor: palette.surface }]}>
+          <View style={styles.stockRow}>
+            <View style={styles.stockCopy}>
+              <Text style={[styles.stockLabel, { color: palette.textMuted }]}>Остаток</Text>
+              <Text style={[styles.stockValue, { color: palette.text }]}>{medication.stockUnits} ед.</Text>
+              <Text style={[styles.stockLabel, { color: isLowStock ? palette.warning : palette.textMuted }]}>{isLowStock ? 'Мало осталось' : `В упаковке ${medication.unitsPerPackage} ед.`}</Text>
+            </View>
+            <ActionButton iconOnly disabled={disabled} accessibilityText={`Добавить упаковку препарата ${medication.name}`}
+              label="Добавить упаковку" systemImage="plus" onPress={() => onAddPackage(medication.id)} palette={palette} />
+          </View>
+          <View accessibilityLabel={`Запас упаковки ${progress}%`} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progress }} style={[styles.progressTrack, { backgroundColor: palette.surfaceMuted }]}>
+            <View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} />
+          </View>
         </View>
       )}
       onDelete={() => onDelete(medication.id)}
@@ -51,32 +60,18 @@ const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelet
           </View>
           {!isLargeText ? <AppSymbol color={palette.textMuted} fallback=">" name="chevron.right" /> : null}
         </View>
-        <View style={styles.stockBlock}>
-          <View style={styles.stockRow}>
-            <View style={styles.stockCopy}>
-              <Text style={[styles.stockLabel, { color: palette.textMuted }]}>Остаток</Text>
-              <Text style={[styles.stockValue, { color: palette.text }]}>{medication.stockUnits} ед.</Text>
-            </View>
-            <View style={[styles.stockBadge, { backgroundColor: isLowStock ? palette.warningSoft : palette.successSoft }]}>
-              <Text style={[styles.stockBadgeText, { color: isLowStock ? palette.warning : palette.success }]}>{isLowStock ? 'Мало осталось' : 'В наличии'}</Text>
-            </View>
-          </View>
-          <View accessibilityLabel={`Запас упаковки ${progress}%`} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progress }} style={[styles.progressTrack, { backgroundColor: palette.surfaceMuted }]}>
-            <View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} />
-          </View>
-        </View>
+
       </Surface>
     </SwipeableCard>
   );
 };
 
 export const MedicationsScreen = ({ isLargeText, isTablet }: { isLargeText: boolean; isTablet: boolean }) => {
-  const { addPackage, createMedicationId, deleteMedication, saveMedication, snapshot, takeMedicationNow } = usePilloContext();
+  const { addPackage, createMedicationId, deleteMedication, saveMedication, snapshot, isSaving } = usePilloContext();
   const { isDark, palette } = usePilloTheme(snapshot.settings.theme);
   const [newMedicationId, setNewMedicationId] = useState('');
   const [editingMedication, setEditingMedication] = useState<Medication | null>(null);
   const [isMedicationFormOpen, setMedicationFormOpen] = useState(false);
-  const [quickIntakeMedication, setQuickIntakeMedication] = useState<Medication | null>(null);
 
   const openNewMedication = () => {
     setNewMedicationId(createMedicationId());
@@ -104,10 +99,10 @@ export const MedicationsScreen = ({ isLargeText, isTablet }: { isLargeText: bool
       onAddPackage={addMedicationPackage}
       onDelete={deleteMedicationWithConfirmation}
       onEdit={editMedication}
-      onQuickIntake={setQuickIntakeMedication}
+      disabled={isSaving}
       palette={palette}
     />
-  ), [addMedicationPackage, columnCount, deleteMedicationWithConfirmation, editMedication, isLargeText, palette]);
+  ), [addMedicationPackage, columnCount, deleteMedicationWithConfirmation, editMedication, isLargeText, isSaving, palette]);
 
   return (
     <View style={styles.screenRoot}>
@@ -126,7 +121,6 @@ export const MedicationsScreen = ({ isLargeText, isTablet }: { isLargeText: bool
         renderItem={renderMedication}
       />
       {isMedicationFormOpen ? <MedicationForm isDark={isDark} key={editingMedication?.id ?? 'new-medication'} medication={editingMedication} newId={newMedicationId} onClose={() => setMedicationFormOpen(false)} onSave={saveMedication} visible /> : null}
-      <ManualIntakeSheet initialMedicationId={quickIntakeMedication?.id} isDark={isDark} key={quickIntakeMedication ? `manual-open:${quickIntakeMedication.id}` : 'manual-closed'} medications={snapshot.medications} onClose={() => setQuickIntakeMedication(null)} onSave={takeMedicationNow} visible={quickIntakeMedication !== null} />
     </View>
   );
 };
@@ -152,9 +146,9 @@ const styles = StyleSheet.create({
   medicationGlyphText: { fontSize: 22, fontWeight: '700' },
   cardTitle: { fontSize: 17, fontWeight: '700' },
   cardMeta: { fontSize: 13, lineHeight: 19, marginTop: spacing.xs },
-  stockBlock: { gap: spacing.md, marginTop: spacing.sm },
+  stockBlock: { gap: spacing.md, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   stockRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, justifyContent: 'space-between' },
-  stockCopy: { gap: spacing.xs },
+  stockCopy: { flex: 1, gap: spacing.xs },
   stockLabel: { fontSize: 13, lineHeight: 18 },
   stockValue: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
   stockBadge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
