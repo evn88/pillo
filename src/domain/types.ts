@@ -1,6 +1,7 @@
 export type IntakeStatus = 'PENDING' | 'TAKEN' | 'SKIPPED';
 
 export type Medication = {
+  photoFileName?: string | null;
   id: string;
   name: string;
   dosage: string;
@@ -65,7 +66,7 @@ export const emptySnapshot: PilloSnapshot = {
 };
 
 export type MedicationInput = Pick<Medication,
-  'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>;
+  'photoFileName' | 'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>;
 
 export type CalendarCoverage = { from: string; through: string };
 

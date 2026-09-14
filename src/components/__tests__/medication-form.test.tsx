@@ -5,6 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { MedicationForm } from '../medication-form';
 
+vi.mock('@/hooks/use-medication-photo', () => ({ useMedicationPhoto: () => ({ photo: null, isPicking: false, error: null, choose: vi.fn(), remove: vi.fn(), save: (fn: () => Promise<unknown>) => fn() }) }));
+vi.mock('../medication-photo-field', () => ({ MedicationPhotoField: () => null }));
+
 vi.mock('@expo/ui/swift-ui', () => ({
   Host: ({ children }: { children: ReactNode }) => children,
   Picker: ({ children, label, onSelectionChange }: { children: ReactNode; label: string; onSelectionChange: (value: string) => void }) => (

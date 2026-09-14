@@ -1,7 +1,8 @@
+import { medicationPhotoUri } from '@/services/medication-photos';
 import { AppSymbol } from '@/components/app-symbol';
 import { useCallback, useState } from 'react';
 import { ScreenActions } from '@/components/screen-actions';
-import { Alert, FlatList, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
+import { Alert, FlatList, Image, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
 
 import { MedicationForm } from '@/components/medication-form';
 import { SwipeableCard } from '@/components/swipeable-card';
@@ -40,7 +41,7 @@ const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelet
     >
       <Surface palette={palette} style={[styles.gridCard, styles.cardWithFooter, isLowStock ? { borderColor: palette.warning } : undefined]}>
         <View style={[styles.cardHeader, isLargeText && styles.cardHeaderLarge]}>
-          <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} /></View>
+          <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}>{medication.photoFileName ? <Image accessibilityLabel={`Упаковка ${medication.name}`} source={{ uri: medicationPhotoUri(medication.photoFileName) }} style={{ width: 52, height: 52, borderRadius: radii.md }} /> : <AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} />}</View>
           <View style={[styles.cardHeaderCopy, isLargeText && styles.cardHeaderCopyLarge]}>
             <Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text>
             <Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || medication.form} · {medication.stockUnits} ед.</Text>

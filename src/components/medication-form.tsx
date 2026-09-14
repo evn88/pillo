@@ -1,3 +1,5 @@
+import { MedicationPhotoField } from './medication-photo-field';
+import { useMedicationPhoto } from '@/hooks/use-medication-photo';
 import { Host, Picker, Text as NativeText } from '@expo/ui/swift-ui';
 import { disabled as disabledModifier, pickerStyle, tag, tint } from '@expo/ui/swift-ui/modifiers';
 import { Controller, useForm } from 'react-hook-form';
@@ -40,7 +42,7 @@ type MedicationFormProps = {
   medication: Medication | null;
   newId: string;
   onClose: () => void;
-  onSave: (medication: Pick<Medication, 'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>, commandId?: string) => Promise<CommandResult>;
+  onSave: (medication: Pick<Medication, 'photoFileName' | 'id' | 'name' | 'dosage' | 'form' | 'stockUnits' | 'unitsPerPackage' | 'minThresholdUnits'>, commandId?: string) => Promise<CommandResult>;
   visible: boolean;
 };
 
@@ -108,6 +110,7 @@ export const MedicationForm = ({
   onSave,
   visible
 }: MedicationFormProps) => {
+  const photoDraft = useMedicationPhoto(medication?.photoFileName);
   const palette = isDark ? colors.dark : colors.light;
   const isLargeText = useLargeTextLayout();
   const medicationId = medication?.id ?? newId;
@@ -135,23 +138,23 @@ export const MedicationForm = ({
   }];
 
   const handleSave = handleSubmit(async values => {
-    await submit(commandId => onSave({
-      ...toMedicationInput(values, medicationId)
-    }, commandId), onClose, JSON.stringify(values));
+    await submit(commandId => photoDraft.save(() => onSave({
+      ...toMedicationInput(values, medicationId), photoFileName: photoDraft.photo
+    }, commandId)), onClose, JSON.stringify({ ...values, photo: photoDraft.photo }));
   });
 
   const submitLabel = medication ? 'Готово' : 'Добавить';
-  const cancelAction = <ActionButton toolbar role="cancel" disabled={isPending} compact label="Отмена" onPress={onClose} palette={palette} tone="secondary" />;
+  const cancelAction = <ActionButton toolbar role="cancel" disabled={isPending || photoDraft.isPicking} compact label="Отмена" onPress={onClose} palette={palette} tone="secondary" />;
   const submitAction = <ActionButton toolbar
     compact
-    disabled={isPending}
+    disabled={isPending || photoDraft.isPicking}
     label={isPending ? (medication ? 'Сохраняем…' : 'Добавляем…') : submitLabel}
     onPress={() => void handleSave()}
     palette={palette}
   />;
 
   return (
-    <Modal animationType="slide" onRequestClose={() => { if (!isPending) onClose(); }} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
+    <Modal animationType="slide" onRequestClose={() => { if (!isPending && !photoDraft.isPicking) onClose(); }} presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'fullScreen'} visible={visible}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'android' ? 'height' : undefined}
         style={[styles.modal, { backgroundColor: palette.background }]}
@@ -182,7 +185,9 @@ export const MedicationForm = ({
             <Text style={[styles.introText, { color: palette.textMuted }]}>Добавьте название. Дозировку и запас можно уточнить позже.</Text>
           </View>
 
-          <FormSection
+          <MedicationPhotoField photo={photoDraft.photo} palette={palette} disabled={isPending || photoDraft.isPicking}
+          error={photoDraft.error} onChoose={source => { void photoDraft.choose(source); }} onRemove={photoDraft.remove} />
+        <FormSection
             description="То, как препарат будет показан в расписании и истории."
             palette={palette}
             title="Основное"

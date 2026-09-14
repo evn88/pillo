@@ -41,7 +41,9 @@ export const decodeMedication = (value: unknown): Medication => {
   const item = record(value, 'препарат');
   const name = string(item.name, 'название').trim();
   if (!name) fail('название');
+  if (item.photoFileName != null && (typeof item.photoFileName !== 'string' || !/^[a-f0-9-]{36}\.jpg$/.test(item.photoFileName))) fail('фото упаковки');
   return {
+    ...(item.photoFileName === undefined ? {} : { photoFileName: item.photoFileName as string | null }),
     id: id(item.id), name, dosage: string(item.dosage, 'дозировка'), form: string(item.form, 'форма'),
     stockUnits: quantity(item.stockUnits), unitsPerPackage: quantity(item.unitsPerPackage),
     minThresholdUnits: quantity(item.minThresholdUnits), isActive: bool(item.isActive),

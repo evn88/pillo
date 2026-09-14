@@ -5,6 +5,10 @@ public final class PilloDataPrivacyModule: Module {
   public func definition() -> ModuleDefinition {
     Name("PilloDataPrivacy")
 
+    AsyncFunction("excludePathFromBackupAsync") { (path: String) in
+      try excludeFromBackup(path: path)
+    }
+
     AsyncFunction("excludeSQLiteDatabaseFromBackupAsync") { (databasePath: String) in
       try [databasePath, "\(databasePath)-wal", "\(databasePath)-shm"].forEach(excludeFromBackup)
     }

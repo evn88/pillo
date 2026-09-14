@@ -9,6 +9,7 @@ import { MedicationsScreen } from '@/screens/medications-screen';
 
 const context = vi.hoisted(() => ({ current: {} as PilloContextValue }));
 
+vi.mock('@/services/medication-photos', () => ({ medicationPhotoUri: () => undefined }));
 vi.mock('@/providers/pillo-provider', () => ({ usePilloContext: () => context.current }));
 vi.mock('@/theme/use-pillo-theme', () => ({ usePilloTheme: () => ({ isDark: false, palette: colors.light }) }));
 vi.mock('@/components/app-symbol', () => ({ AppSymbol: () => null }));

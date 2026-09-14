@@ -42,7 +42,16 @@
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-splash-screen",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Выберите фото упаковки препарата для его карточки.",
+          "cameraPermission": "Разрешите снять упаковку препарата для его карточки.",
+          "microphonePermission": false
+        }
+      ]
     ]
   }
 }
