@@ -1,14 +1,15 @@
 import { AppSymbol } from '@/components/app-symbol';
-import { Alert, Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { ThemePicker } from '@/components/theme-picker';
 import { ActionButton, Surface } from '@/components/ui';
 import { usePilloContext } from '@/providers/pillo-provider';
+import { openProjectContact } from '@/services/project-contact';
 import { radii, spacing } from '@/theme/tokens';
 import { usePilloTheme } from '@/theme/use-pillo-theme';
 
 export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
-  const { clearData, coverageEndsAt, notificationAccess, notificationError, notificationStatus, openNotificationSettings, retryNotifications, snapshot, updateSettings } = usePilloContext();
+  const { coverageEndsAt, notificationAccess, notificationError, notificationStatus, openNotificationSettings, retryNotifications, snapshot, updateSettings } = usePilloContext();
   const { palette, isDark } = usePilloTheme(snapshot.settings.theme);
   const notificationStatusCopy = notificationStatus === 'ready'
     ? 'Системные напоминания включены.'
@@ -19,17 +20,6 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
         : 'Не удалось обновить системные напоминания.';
   const canRequestPermission = notificationStatus === 'blocked' && notificationAccess?.authorization === 'denied' && notificationAccess.canAskAgain && notificationAccess.channel !== 'blocked';
   const needsSystemSettings = notificationStatus === 'blocked' && (notificationAccess?.channel === 'blocked' || notificationAccess?.authorization === 'denied' && !notificationAccess.canAskAgain);
-
-  const clearAllData = () => {
-    Alert.alert(
-      'Удалить все данные?',
-      'Препараты, расписание и история будут удалены с этого устройства без возможности восстановления.',
-      [
-        { text: 'Отмена', style: 'cancel' },
-        { text: 'Удалить всё', style: 'destructive', onPress: () => void clearData() }
-      ]
-    );
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.screenContent} contentInsetAdjustmentBehavior="automatic">
@@ -61,10 +51,18 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
         <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primary }]}><AppSymbol name="circle.lefthalf.filled" fallback="Т" color={palette.surface} /></View><Text style={[styles.cardTitle, { color: palette.text }]}>Тема</Text></View>
         <ThemePicker isDark={isDark} value={snapshot.settings.theme} onChange={theme => void updateSettings({ theme })} />
       </Surface>
+      <Text accessibilityRole="header" style={[styles.eyebrow, { color: palette.textMuted }]}>Поддержка проекта</Text>
+      <Surface palette={palette}>
+        <View style={styles.settingInfoRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="heart.fill" fallback="♡" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Помочь PillDan расти</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Если PillDan вам полезен, вы сможете поддержать проект любой небольшой суммой. Это поможет мне развивать приложение и создавать новые полезные проекты.</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Возможность поддержки появится позже. Спасибо, что вы с PillDan!</Text></View></View>
+      </Surface>
+      <Text accessibilityRole="header" style={[styles.eyebrow, { color: palette.textMuted }]}>Обратная связь</Text>
+      <Surface palette={palette}>
+        <View style={styles.settingInfoRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="envelope.fill" fallback="@" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Связаться с автором</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Есть вопрос, идея или предложение? Буду рад вашим письмам.</Text></View></View>
+        <View style={styles.inlineAction}><ActionButton label="Написать автору" onPress={() => void openProjectContact()} palette={palette} tone="secondary" /></View>
+      </Surface>
       <Text accessibilityRole="header" style={[styles.eyebrow, { color: palette.textMuted }]}>Данные приложения</Text>
       <Surface palette={palette}>
-        <View style={styles.settingTitleRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="lock.shield" fallback="Д" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>PillDan</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Препараты и история хранятся только на этом устройстве.</Text></View></View>
-        <View style={styles.inlineAction}><ActionButton label="Удалить все данные" onPress={clearAllData} palette={palette} tone="danger" /></View>
+        <View style={styles.settingInfoRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="lock.shield" fallback="Д" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>PillDan</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Препараты и история хранятся только на этом устройстве.</Text></View></View>
       </Surface>
     </ScrollView>
   );
@@ -79,6 +77,7 @@ const styles = StyleSheet.create({
   settingRowLarge: { alignItems: 'flex-start', flexDirection: 'column' },
   settingLeading: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: spacing.lg, width: '100%' },
   settingTitleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
+  settingInfoRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg },
   settingIcon: { alignItems: 'center', borderRadius: radii.md, height: 44, justifyContent: 'center', width: 44 },
   settingIconText: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
   settingCopy: { flex: 1 },

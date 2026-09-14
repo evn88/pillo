@@ -87,3 +87,13 @@ describe('Восстановление системных напоминаний
     await act(async () => { screen.unmount(); });
   });
 });
+
+describe('Обратная связь', () => {
+  it('показывает действие без публикации email на экране', async () => {
+    const screen = await renderSettings();
+
+    expect(screen.root.findAllByType(Pressable).filter(node => node.props.accessibilityLabel === 'Написать автору')).toHaveLength(1);
+    expect(screen.root.findAllByType(Text).some(node => node.props.children === 'egor@vershkov.com')).toBe(false);
+    await act(async () => { screen.unmount(); });
+  });
+});
