@@ -252,7 +252,7 @@ export const MedicationForm = ({
                 return <>
                   {Platform.OS === 'ios' ? (
                     <View style={[styles.pickerControl, { backgroundColor: palette.surfaceMuted, borderColor: errors.form ? palette.danger : palette.border }]}>
-                      <Host colorScheme={isDark ? 'dark' : 'light'} style={styles.nativePicker}>
+                      <Host ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={styles.nativePicker}>
                         <Picker
                           label="Выбрать форму"
                           onSelectionChange={value => { if (!isPending) handleSelection(value); }}

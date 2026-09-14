@@ -15,7 +15,7 @@ vi.mock('@/components/app-symbol', () => ({ AppSymbol: () => null }));
 vi.mock('@/components/manual-intake-sheet', () => ({ ManualIntakeSheet: () => null }));
 vi.mock('@/components/medication-form', () => ({ MedicationForm: () => null }));
 vi.mock('@/components/screen-actions', () => ({ ScreenActions: () => null }));
-vi.mock('@/components/swipeable-card', () => ({ SwipeableCard: ({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) => <View>{children}{footer}</View> }));
+vi.mock('@/components/swipeable-card', () => ({ SwipeableCard: ({ children, footer, trailingAction }: { children: React.ReactNode; footer?: React.ReactNode; trailingAction?: React.ReactNode }) => <View>{children}{trailingAction}{footer}</View> }));
 vi.mock('@/components/ui', () => ({
   ActionButton: ({ accessibilityText, label, onPress }: { accessibilityText?: string; label: string; onPress: () => void }) => <Pressable accessibilityLabel={accessibilityText ?? label} onPress={onPress}><Text>{label}</Text></Pressable>,
   Surface: ({ children }: { children: React.ReactNode }) => <View>{children}</View>

@@ -53,7 +53,7 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
       </Surface>
       <Text accessibilityRole="header" style={[styles.eyebrow, { color: palette.textMuted }]}>Поддержка проекта</Text>
       <Surface palette={palette}>
-        <View style={styles.settingInfoRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="heart.fill" fallback="♡" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Помочь PillDan расти</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Если PillDan вам полезен, вы сможете поддержать проект любой небольшой суммой. Это поможет мне развивать приложение и создавать новые полезные проекты.</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Возможность поддержки появится позже. Спасибо, что вы с PillDan!</Text></View></View>
+        <View style={styles.settingInfoRow}><View style={[styles.settingIcon, { backgroundColor: palette.primarySoft }]}><AppSymbol name="heart.fill" fallback="♡" color={palette.primary} /></View><View style={styles.settingCopy}><Text style={[styles.cardTitle, { color: palette.text }]}>Помочь PillDan расти</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Поддержка поможет развивать приложение и создавать новые полезные функции.</Text><Text style={[styles.cardMeta, { color: palette.textMuted }]}>Возможность поддержки появится позже. Спасибо, что вы рядом!</Text></View></View>
       </Surface>
       <Text accessibilityRole="header" style={[styles.eyebrow, { color: palette.textMuted }]}>Обратная связь</Text>
       <Surface palette={palette}>
@@ -70,7 +70,7 @@ export const SettingsScreen = ({ isLargeText }: { isLargeText: boolean }) => {
 
 const styles = StyleSheet.create({
   pageTitle: { fontSize: 30, fontWeight: '700', letterSpacing: -0.6 },
-  screenContent: { alignSelf: 'center', gap: spacing.xl, maxWidth: 1180, padding: spacing.lg, paddingBottom: spacing.xxl * 4, paddingTop: spacing.xl, width: '100%' },
+  screenContent: { alignSelf: 'center', gap: spacing.lg, maxWidth: 640, padding: spacing.lg, paddingBottom: spacing.xxl * 4, paddingTop: spacing.xl, width: '100%' },
   list: { gap: spacing.md },
   eyebrow: { fontSize: 17, fontWeight: '600', marginHorizontal: spacing.sm },
   settingRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   settingLeading: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: spacing.lg, width: '100%' },
   settingTitleRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.lg },
   settingInfoRow: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.lg },
-  settingIcon: { alignItems: 'center', borderRadius: radii.md, height: 44, justifyContent: 'center', width: 44 },
+  settingIcon: { alignItems: 'center', borderRadius: radii.md, height: 36, justifyContent: 'center', width: 36, flexShrink: 0 },
   settingIconText: { color: '#FFFFFF', fontSize: 20, fontWeight: '800' },
   settingCopy: { flex: 1 },
   cardTitle: { fontSize: 17, fontWeight: '700' },
@@ -88,5 +88,5 @@ const styles = StyleSheet.create({
   themeOptionsLarge: { flexDirection: 'column' },
   themeOption: { alignItems: 'center', borderRadius: radii.lg, borderWidth: StyleSheet.hairlineWidth, flex: 1, gap: spacing.sm, minHeight: 104, paddingHorizontal: spacing.sm, paddingVertical: spacing.lg },
   themeIcon: { fontSize: 26 },
-  inlineAction: { alignSelf: 'flex-start', marginTop: spacing.lg }
+  inlineAction: { alignSelf: 'flex-end', marginTop: spacing.lg }
 });

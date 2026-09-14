@@ -13,7 +13,7 @@ export const ThemePicker = ({ isDark, value, onChange }: { isDark: boolean; valu
   const isLargeText = useLargeTextLayout();
   const palette = isDark ? colors.dark : colors.light;
   if (Platform.OS === 'ios' && !isLargeText) {
-    return <Host colorScheme={isDark ? 'dark' : 'light'} style={{ height: 48, marginTop: 16 }}>
+    return <Host ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={{ height: 48, marginTop: 16 }}>
       <Picker label="Тема оформления" selection={value} onSelectionChange={onChange} modifiers={[pickerStyle('segmented')]}>
         {options.map(option => <NativeText key={option.value} modifiers={[tag(option.value)]}>{option.label}</NativeText>)}
       </Picker>

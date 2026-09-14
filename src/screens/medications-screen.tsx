@@ -24,29 +24,16 @@ type MedicationCardProps = {
 
 const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelete, onEdit, disabled, palette }: MedicationCardProps) => {
   const isLowStock = medication.stockUnits <= medication.minThresholdUnits;
-  const packageSize = Math.max(1, medication.unitsPerPackage);
-  const progress = Math.min(100, Math.round((medication.stockUnits / packageSize) * 100));
 
   return (
     <SwipeableCard
       accessibilityLabel={`Изменить препарат ${medication.name}`}
       deleteColor={palette.danger}
-      footer={(
-        <View style={[styles.stockBlock, { backgroundColor: palette.surface }]}>
-          <View style={styles.stockRow}>
-            <View style={styles.stockCopy}>
-              <Text style={[styles.stockLabel, { color: palette.textMuted }]}>Остаток</Text>
-              <Text style={[styles.stockValue, { color: palette.text }]}>{medication.stockUnits} ед.</Text>
-              <Text style={[styles.stockLabel, { color: isLowStock ? palette.warning : palette.textMuted }]}>{isLowStock ? 'Мало осталось' : `В упаковке ${medication.unitsPerPackage} ед.`}</Text>
-            </View>
-            <ActionButton iconOnly disabled={disabled} accessibilityText={`Добавить упаковку препарата ${medication.name}`}
-              label="Добавить упаковку" systemImage="plus" onPress={() => onAddPackage(medication.id)} palette={palette} />
-          </View>
-          <View accessibilityLabel={`Запас упаковки ${progress}%`} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: progress }} style={[styles.progressTrack, { backgroundColor: palette.surfaceMuted }]}>
-            <View style={[styles.progressFill, { backgroundColor: isLowStock ? palette.warning : palette.primary, width: `${progress}%` }]} />
-          </View>
-        </View>
-      )}
+      contentStyle={{ backgroundColor: palette.surface }}
+      trailingAction={<View style={styles.packageAction}><ActionButton iconOnly disabled={disabled}
+        accessibilityText={`Добавить упаковку препарата ${medication.name}`} label="Добавить упаковку"
+        systemImage="plus" onPress={() => onAddPackage(medication.id)} palette={palette} /></View>}
+
       onDelete={() => onDelete(medication.id)}
       onPress={() => onEdit(medication)}
       style={[styles.gridCardContainer, { borderWidth: 1, borderColor: isLowStock ? palette.warning : palette.border }, isGrid ? styles.gridCardContainerWide : styles.gridCardContainerSingle]}
@@ -56,9 +43,10 @@ const MedicationCard = ({ isGrid, isLargeText, medication, onAddPackage, onDelet
           <View style={[styles.medicationGlyph, { backgroundColor: palette.primarySoft }]}><AppSymbol name="pill.fill" fallback="Rx" color={palette.primary} /></View>
           <View style={[styles.cardHeaderCopy, isLargeText && styles.cardHeaderCopyLarge]}>
             <Text style={[styles.cardTitle, { color: palette.text }]}>{medication.name}</Text>
-            <Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || 'Без дозировки'} · {medication.form}</Text>
+            <Text style={[styles.cardMeta, { color: palette.textMuted }]}>{medication.dosage || medication.form} · {medication.stockUnits} ед.</Text>
+            {isLowStock ? <Text style={[styles.cardMeta, { color: palette.warning }]}>Мало осталось</Text> : null}
           </View>
-          {!isLargeText ? <AppSymbol color={palette.textMuted} fallback=">" name="chevron.right" /> : null}
+
         </View>
 
       </Surface>
@@ -137,7 +125,8 @@ const styles = StyleSheet.create({
   gridCardContainer: { marginBottom: spacing.md },
   gridCardContainerSingle: { width: '100%' },
   gridCardContainerWide: { flex: 1 },
-  gridCard: { flexGrow: 1, gap: spacing.md },
+  gridCard: { flexGrow: 1, padding: spacing.md },
+  packageAction: { paddingRight: spacing.md },
   cardHeader: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
   cardHeaderLarge: { flexDirection: 'column' },
   cardHeaderCopy: { flex: 1 },

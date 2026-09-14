@@ -13,7 +13,7 @@ export const ScheduleDateInput = ({ value, onChange, onBlur, label, isDark, time
   if (Platform.OS !== 'ios') return <TextInput editable={!disabled} accessibilityLabel={label} onBlur={onBlur} onChangeText={onChange} value={value} placeholder={time ? 'ЧЧ:ММ' : 'ГГГГ-ММ-ДД'} placeholderTextColor={palette.textMuted} style={{ minHeight: 48, padding: 12, borderRadius: 12, backgroundColor: palette.surface, color: palette.text }} />;
   return <View>
     {optional && !value ? <ActionButton disabled={disabled} label="Без даты окончания" onPress={() => onChange(getLocalDateKey(new Date()))} palette={palette} tone="secondary" /> : <>
-      <Host colorScheme={isDark ? 'dark' : 'light'} style={{ minHeight: 48 }} matchContents>
+      <Host ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={{ minHeight: 48 }} matchContents>
         <DatePicker title={label} selection={Number.isNaN(date.getTime()) ? new Date() : date} displayedComponents={[time ? 'hourAndMinute' : 'date']} modifiers={[disabledModifier(disabled), datePickerStyle('compact'), tint(palette.primary)]} onDateChange={selected => {
           onChange(time ? `${String(selected.getHours()).padStart(2, '0')}:${String(selected.getMinutes()).padStart(2, '0')}` : getLocalDateKey(selected));
           onBlur();

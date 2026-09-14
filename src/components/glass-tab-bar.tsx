@@ -38,7 +38,7 @@ export const GlassTabBar = ({ isDark, palette, onManualIntake, disabled: isDisab
   const groupWidth = showAction ? barWidth - barHeight - spacing.md : barWidth;
   const actionLabel = primaryAction?.label ?? 'Отметить приём';
   return <View pointerEvents="box-none" style={[styles.position, { bottom: Math.max(insets.bottom, spacing.sm) }]}>
-    <Host colorScheme={isDark ? 'dark' : 'light'} style={{ width: barWidth, height: barHeight }}>
+    <Host ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={{ width: barWidth, height: barHeight }}>
       <Namespace id={namespaceId}>
         <GlassEffectContainer spacing={spacing.sm} modifiers={[
           animation(Animation.spring({ duration: reduceMotion || reduceTransparency ? 0 : 0.45 }), showAction)

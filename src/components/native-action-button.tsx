@@ -56,7 +56,7 @@ export const NativeActionButton = ({
 
   if (Platform.OS === 'ios') {
     return (
-      <SwiftUIHost colorScheme={isDark ? 'dark' : 'light'} matchContents={!fullWidth && !fill} style={hostStyle}>
+      <SwiftUIHost ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} matchContents={!fullWidth && !fill} style={hostStyle}>
         <SwiftUIButton
           label={label}
           onPress={onPress}
@@ -113,7 +113,7 @@ export const NativePrimaryButton = ({ disabled = false, isDark, label, onPress, 
 export const NativeHistoryButton = ({ isDark, onPress, tintColor }: Pick<NativeActionButtonProps, 'isDark' | 'onPress' | 'tintColor'>) => {
   if (Platform.OS === 'ios') {
     return (
-      <SwiftUIHost colorScheme={isDark ? 'dark' : 'light'} style={styles.iconHost}>
+      <SwiftUIHost ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={styles.iconHost}>
         <SwiftUIButton
           label="История"
           onPress={onPress}

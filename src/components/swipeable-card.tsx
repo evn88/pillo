@@ -18,13 +18,15 @@ type SwipeableCardProps = {
   accessibilityLabel: string;
   children: ReactNode;
   footer?: ReactNode;
+  trailingAction?: ReactNode;
+  contentStyle?: StyleProp<ViewStyle>;
   deleteColor: string;
   onDelete: () => void;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
+export const SwipeableCard = ({ accessibilityLabel, children, footer, trailingAction, contentStyle, deleteColor, onDelete, onPress, style }: SwipeableCardProps) => {
   const [translateX] = useState(() => new Animated.Value(0));
   const [panResponder, setPanResponder] = useState<ReturnType<typeof PanResponder.create> | null>(null);
   const currentOffset = useRef(0);
@@ -93,8 +95,9 @@ export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColo
         <AppSymbol color="#FFFFFF" fallback="Удалить" name="trash.fill" />
         <Text style={styles.deleteLabel}>Удалить</Text>
       </Pressable>
-      <Animated.View style={{ transform: [{ translateX }] }} {...panResponder?.panHandlers}>
-        <Pressable
+      <Animated.View style={[contentStyle, { transform: [{ translateX }] }]} {...panResponder?.panHandlers}>
+        <View style={styles.contentRow}>
+        <Pressable style={styles.mainContent}
           accessibilityActions={[{ name: 'activate', label: 'Изменить' }, { name: 'delete', label: 'Удалить' }, { name: 'showActions', label: 'Показать действия' }]}
           accessibilityHint="Нажмите для редактирования. Смахните влево для удаления."
           accessibilityLabel={accessibilityLabel}
@@ -104,6 +107,8 @@ export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColo
         >
           {children}
         </Pressable>
+        {trailingAction}
+        </View>
         {footer}
       </Animated.View>
     </View>
@@ -111,6 +116,8 @@ export const SwipeableCard = ({ accessibilityLabel, children, footer, deleteColo
 };
 
 const styles = StyleSheet.create({
+  contentRow: { flexDirection: 'row', alignItems: 'center' },
+  mainContent: { flex: 1 },
   container: { borderCurve: 'continuous', borderRadius: 18, overflow: 'hidden' },
   deleteAction: {
     alignItems: 'center',

@@ -15,14 +15,14 @@ export type IntakeActionProps = {
 
 export const IntakeAction = ({ accessibilityText, disabled: isDisabled = false, isDark, items, onPress, tintColor }: IntakeActionProps) => {
   if (Platform.OS === 'ios') {
-    if (items.length === 0) return <Host colorScheme={isDark ? 'dark' : 'light'} style={styles.button}>
+    if (items.length === 0) return <Host ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={styles.button}>
       <Button label={accessibilityText} systemImage="checkmark" onPress={onPress} modifiers={[
         buttonStyle(Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glassProminent' : 'borderedProminent'),
         buttonBorderShape('circle'), controlSize('large'), frame({ width: 44, height: 44 }), labelStyle('iconOnly'),
         tint(tintColor), foregroundStyle(isDark ? '#343434' : '#FFFFFF'), disabled(isDisabled), accessibilityLabel(accessibilityText)
       ]} />
     </Host>;
-    return <Host colorScheme={isDark ? 'dark' : 'light'} style={styles.button}>
+    return <Host ignoreSafeArea="all" colorScheme={isDark ? 'dark' : 'light'} style={styles.button}>
       <Menu label={accessibilityText} systemImage="checkmark" onPrimaryAction={onPress} modifiers={[
         buttonStyle(Number.parseInt(String(Platform.Version), 10) >= 26 ? 'glassProminent' : 'borderedProminent'),
         buttonBorderShape('circle'), controlSize('large'), frame({ width: 44, height: 44 }),
